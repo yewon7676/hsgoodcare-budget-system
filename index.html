@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V16 (Supabase 연동)</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V17 (Supabase 연동)</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,7 +33,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; line-height: 1.6; }
-        .container { max-width: 1250px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .container { max-width: 1300px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         header h1 { font-size: 22px; color: var(--primary-color); }
@@ -42,9 +42,10 @@
         .backup-control-bar label { font-size: 13px; font-weight: bold; margin-bottom: 0; cursor: pointer; color: #4a5568; }
 
         .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 25px; flex-wrap: wrap; gap: 5px; }
-        .tab-btn { padding: 12px 20px; cursor: pointer; background: none; border: none; font-size: 15px; font-weight: bold; color: #718096; outline: none; transition: all 0.2s; }
+        .tab-btn { padding: 12px 18px; cursor: pointer; background: none; border: none; font-size: 14px; font-weight: bold; color: #718096; outline: none; transition: all 0.2s; }
         .tab-btn.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); margin-bottom: -2px; }
         .tab-btn.income-tab-btn.active { color: var(--income-color); border-bottom: 3px solid var(--income-color); }
+        .tab-btn.report-tab-btn.active { color: #805ad5; border-bottom: 3px solid #805ad5; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
@@ -61,7 +62,7 @@
         .items-section { margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); }
         .items-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .items-table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 0; }
-        .items-table th, .items-table td { padding: 8px; border: 1px solid var(--border-color); font-size: 13px; }
+        .items-table th, .items-table td { padding: 8px; border: 1px solid var(--border-color); font-size: 12px; }
         .items-table th { background-color: #edf2f7; text-align: center; }
 
         .filter-bar { display: flex; gap: 10px; align-items: center; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 15px; flex-wrap: wrap; }
@@ -86,8 +87,8 @@
         .summary-card { background: #edf2f7; padding: 20px; border-radius: 6px; border-left: 5px solid var(--primary-color); }
         .summary-card h3 { margin-bottom: 15px; font-size: 16px; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        th, td { border: 1px solid var(--border-color); padding: 7px; text-align: left; }
         th { background-color: #f7fafc; font-weight: bold; text-align: center; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
@@ -95,7 +96,7 @@
         .progress-bar-bg { background-color: #cbd5e0; border-radius: 4px; height: 10px; width: 100%; overflow: hidden; }
         .progress-bar-fill { background-color: #3182ce; height: 100%; width: 0%; transition: width 0.3s; }
 
-        .budget-input, .income-input { width: 100px; text-align: right; font-weight: bold; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 13px; }
+        .budget-input, .income-input { width: 100px; text-align: right; font-weight: bold; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 12px; }
         .budget-input:focus, .income-input:focus { outline: 2px solid var(--primary-color); }
         .income-input { border-color: #38a169; color: #237032; }
 
@@ -140,6 +141,13 @@
         .print-footer-logo { margin-top: 35px; text-align: center; border-top: 1px solid #000; padding-top: 15px; }
         .print-footer-text { font-size: 20px; font-weight: bold; letter-spacing: 3px; color: #1a365d; }
 
+        /* 분기 정산 보고서 전용 서식 */
+        .report-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+        .report-table th, .report-table td { border: 1px solid #1a365d; padding: 6px 4px; text-align: center; }
+        .report-table th { background-color: #1a365d; color: #fff; font-weight: bold; }
+        .report-table th.sub-header { background-color: #2b6cb0; color: #fff; }
+        .report-table td.highlight-red { border: 2px solid #e53e3e; background-color: #fff5f5; font-weight: bold; }
+
         @media print {
             body { background: white; padding: 0; }
             .container { box-shadow: none; padding: 0; }
@@ -152,7 +160,7 @@
 
 <div class="container">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V16</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V17</h1>
         
         <div class="backup-control-bar">
             <button class="btn-sm btn-income" onclick="exportData()" style="padding:6px 12px; font-size:13px;">📥 백업 파일 다운로드</button>
@@ -169,6 +177,7 @@
         <button class="tab-btn" onclick="switchTab('print-tab')">5. 지출 결의서 출력</button>
         <button class="tab-btn" onclick="switchTab('dashboard-tab')">6. 통계 및 보고서 차트</button>
         <button class="tab-btn" onclick="switchTab('combined-summary-tab')" style="color:#d69e2e;">7. 수입·지출 통합 요약 목록</button>
+        <button class="tab-btn report-tab-btn" onclick="switchTab('quarterly-report-tab')" style="color:#805ad5;">8. 분기별 정산 보고서</button>
     </div>
 
     <!-- 1 탭: 입금 내역 등록 및 수정 -->
@@ -214,9 +223,10 @@
                 <table class="items-table" id="income-items-table">
                     <thead>
                         <tr>
-                            <th style="width: 25%;">입금 계정과목 / 분류</th>
-                            <th style="width: 25%;">입금처 (지급기관/입금자)</th>
-                            <th style="width: 28%;">세부 적요 및 내역</th>
+                            <th style="width: 20%;">입금 계정과목 / 분류</th>
+                            <th style="width: 15%;">보탬e 구분</th>
+                            <th style="width: 20%;">입금처 (지급기관/입금자)</th>
+                            <th style="width: 23%;">세부 적요 및 내역</th>
                             <th style="width: 14%;">금액 (원)</th>
                             <th style="width: 8%;">삭제</th>
                         </tr>
@@ -224,7 +234,7 @@
                     <tbody id="income-items-tbody"></tbody>
                     <tfoot>
                         <tr style="background:#edf2f7; font-weight:bold;">
-                            <td colspan="3" class="text-right">입금 총액 합계:</td>
+                            <td colspan="4" class="text-right">입금 총액 합계:</td>
                             <td class="text-right" id="income-total-display" style="color:var(--income-color);">0 원</td>
                             <td></td>
                         </tr>
@@ -322,24 +332,26 @@
 
             <div class="items-section">
                 <div class="items-header">
-                    <label style="margin-bottom:0;">■ 세부 지출 항목 및 지출처 입력 (실제 지출일자 지정 가능)</label>
+                    <label style="margin-bottom:0;">■ 세부 지출 항목 및 지출처 입력 (보탬e 구분 및 결제수단 지정 가능)</label>
                     <button type="button" class="btn-add-item" onclick="addItemRow()">+ 항목 추가</button>
                 </div>
                 <table class="items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 15%;">실제 지출일자</th>
-                            <th style="width: 18%;">목/세목 계정과목</th>
-                            <th style="width: 20%;">지출처 (지급처)</th>
-                            <th style="width: 28%;">세부 적요 및 내역</th>
-                            <th style="width: 13%;">금액 (원)</th>
-                            <th style="width: 6%;">삭제</th>
+                            <th style="width: 12%;">실제 지출일자</th>
+                            <th style="width: 14%;">목/세목 계정과목</th>
+                            <th style="width: 14%;">보탬e 구분</th>
+                            <th style="width: 12%;">결제수단</th>
+                            <th style="width: 15%;">지출처 (지급처)</th>
+                            <th style="width: 18%;">세부 적요 및 내역</th>
+                            <th style="width: 10%;">금액 (원)</th>
+                            <th style="width: 5%;">삭제</th>
                         </tr>
                     </thead>
                     <tbody id="items-tbody"></tbody>
                     <tfoot>
                         <tr style="background:#edf2f7; font-weight:bold;">
-                            <td colspan="4" class="text-right">지출 총액 합계:</td>
+                            <td colspan="6" class="text-right">지출 총액 합계:</td>
                             <td class="text-right" id="total-amount-display" style="color:var(--primary-color);">0 원</td>
                             <td></td>
                         </tr>
@@ -498,7 +510,7 @@
     <!-- 7 탭: 수입·지출 통합 요약 목록 -->
     <div id="combined-summary-tab" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="font-size: 18px; color: var(--primary-color);">■ 수입 및 세부 지출 통합 요약 장부 (세부항목별 정밀 내역)</h3>
+            <h3 style="font-size: 18px; color: var(--primary-color);">■ 수입 및 세부 지출 통합 요약 장부 (실적보고용 보탬e구분/결제수단 포함)</h3>
             <button class="btn-excel" onclick="exportCombinedExcel()">💚 세부통합장부 엑셀 다운로드</button>
         </div>
 
@@ -523,28 +535,65 @@
         <table id="combined-summary-table">
             <thead>
                 <tr>
-                    <th style="width: 7%;">구분</th>
-                    <th style="width: 11%;">관리 번호</th>
-                    <th style="width: 9%;">거래 일자</th>
-                    <th style="width: 8%;">회계 구분</th>
-                    <th style="width: 12%;">예산 / 입금항목</th>
-                    <th style="width: 12%;">계정 과목</th>
-                    <th style="width: 12%;">거래처(지급/입금)</th>
-                    <th>세부 적요 및 내역</th>
-                    <th class="text-right" style="width: 9%;">입금액(원)</th>
-                    <th class="text-right" style="width: 9%;">지출액(원)</th>
-                    <th class="text-right" style="width: 10%;">누적 잔액(원)</th>
+                    <th style="width: 5%;">월</th>
+                    <th style="width: 5%;">일자</th>
+                    <th style="width: 5%;">구분</th>
+                    <th style="width: 10%;">거래처/입금처</th>
+                    <th style="width: 10%;">대분류(사업)</th>
+                    <th style="width: 10%;">보탬e구분</th>
+                    <th style="width: 12%;">세부사업/항목</th>
+                    <th style="width: 8%;">입금(원)</th>
+                    <th style="width: 8%;">출금(원)</th>
+                    <th style="width: 9%;">잔액(원)</th>
+                    <th style="width: 8%;">결제수단</th>
+                    <th style="width: 10%;">증빙서류</th>
                 </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
-                <tr style="background:#edf2f7; font-weight:bold; font-size:13px;">
-                    <td colspan="8" class="text-center">조회 세부 내역 합계</td>
+                <tr style="background:#edf2f7; font-weight:bold; font-size:12px;">
+                    <td colspan="7" class="text-center">조회 세부 내역 합계</td>
                     <td class="text-right" id="comb-total-income" style="color:var(--income-color);">0 원</td>
                     <td class="text-right" id="comb-total-exp" style="color:var(--danger-color);">0 원</td>
                     <td class="text-right" id="comb-final-balance" style="color:var(--primary-color);">0 원</td>
+                    <td colspan="2"></td>
                 </tr>
             </tfoot>
+        </table>
+    </div>
+
+    <!-- 8 탭: 분기별 정산 보고서 -->
+    <div id="quarterly-report-tab" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="font-size: 18px; color: #805ad5;">■ 2026년도 분기별 보조금 정산 보고서 (시청 제출 실적보고용)</h3>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-excel" onclick="exportQuarterlyReportExcel()">💚 분기정산보고서 엑셀 다운로드</button>
+                <button class="btn btn-secondary" onclick="window.print()" style="padding: 6px 12px; font-size:12px;">🖨️ 보고서 인쇄</button>
+            </div>
+        </div>
+
+        <table class="report-table" id="quarterly-report-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 15%;">구분</th>
+                    <th rowspan="2" style="width: 10%;">총 예산</th>
+                    <th colspan="2" style="width: 16%;">2026년 예산</th>
+                    <th colspan="2" style="width: 16%;">기지급액 (1-2분기)</th>
+                    <th colspan="2" style="width: 20%; background-color:#e53e3e;" class="highlight-red">금회 지급신청액 (3분기)</th>
+                    <th colspan="2" style="width: 18%;">지급신청잔액 (4분기)</th>
+                </tr>
+                <tr>
+                    <th class="sub-header">보조금</th>
+                    <th class="sub-header">자부담</th>
+                    <th class="sub-header">보조금</th>
+                    <th class="sub-header">자부담</th>
+                    <th class="sub-header" style="background-color:#c53030;">보조금</th>
+                    <th class="sub-header" style="background-color:#c53030;">자부담</th>
+                    <th class="sub-header">보조금</th>
+                    <th class="sub-header">자부담</th>
+                </tr>
+            </thead>
+            <tbody id="quarterly-report-tbody"></tbody>
         </table>
     </div>
 
@@ -590,6 +639,14 @@
         "공공운영비", "여비교통비 및 급량비", "운영수당", 
         "강사비 및 교육운영비", "행사 및 홍보비", "사업비기타"
     ];
+
+    const botamOptions = [
+        "사무관리비", "보수", "사회보험 부담", "퇴직적립금 부담", 
+        "교부금_1분기", "교부금_2분기", "교부금_3분기", "교부금_4분기",
+        "공공운영비", "1 교육사업(역량강화)", "2 인식개선", "3 권익증진", "4 건강증진", "기타"
+    ];
+
+    const paymentMethodOptions = ["계좌이체", "카드", "자동이체", "기타"];
 
     const incomeAccountOptions = [
         "보조금수입", "자부담수입", "이자수입", "잡수입/기타"
@@ -761,7 +818,7 @@
         const incomes = await getIncomes();
         const expenditures = await getExpenditures();
         const backupData = {
-            version: "V16",
+            version: "V17",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -809,7 +866,7 @@
         reader.readAsText(file);
     }
 
-    /* 화면 표 구조와 1:1 일치하는 CSV 샘플 양식 다운로드 */
+    /* CSV 샘플 양식 다운로드 기능 */
     function downloadIncomeSampleCSV() {
         const csvContent = "\uFEFF입금번호,일자,구분,입금항목,세부적요,금액,입금처,증빙서류\n" +
             ",2026-09-01,보조금,보조금,2026년 3차 보조금 입금,5000000,화성시청,통장입금통지서.pdf\n" +
@@ -826,9 +883,9 @@
     }
 
     function downloadExpenditureSampleCSV() {
-        const csvContent = "\uFEFF결의번호,일자,구분,예산항목,세부적요,금액,지출처,증빙서류\n" +
-            ",2026-09-02,보조금,운영비,사무실 복사용지 구매,85000,알파문구,영수증.pdf\n" +
-            "결의-2026-099,2026-09-10,자부담,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사,카드영수증.pdf\n";
+        const csvContent = "\uFEFF결의번호,일자,구분,예산항목,세부적요,금액,지출처,증빙서류,보탬e구분,결제수단\n" +
+            ",2026-09-02,보조금,운영비,사무실 복사용지 구매,85000,알파문구,영수증.pdf,사무관리비,카드\n" +
+            "결의-2026-099,2026-09-10,자부담,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사,카드영수증.pdf,1 교육사업(역량강화),계좌이체\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -840,7 +897,7 @@
         document.body.removeChild(link);
     }
 
-    /* CSV 엑셀 일괄 업로드 - 표 구조 1:1 연동 및 유연한 번호 처리 */
+    /* CSV 엑셀 일괄 업로드 */
     async function importCSVIncomes(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -881,7 +938,7 @@
                             summary: summary,
                             evidence: evidence,
                             totalAmount: amount,
-                            items: [{ accountItem: '보조금수입', vendor: vendor, detailSummary: summary, amount: amount }]
+                            items: [{ accountItem: '보조금수입', botamCategory: '교부금_1분기', vendor: vendor, detailSummary: summary, amount: amount }]
                         }, false);
                         count++;
                     }
@@ -917,6 +974,8 @@
                     const amount = parseInt(cols[5] ? cols[5].trim() : '0') || 0;
                     const vendor = cols[6] ? cols[6].trim() : '거래처';
                     const evidence = cols[7] ? cols[7].trim() : 'CSV일괄등록';
+                    const botamCategory = cols[8] ? cols[8].trim() : '사무관리비';
+                    const payMethod = cols[9] ? cols[9].trim() : '계좌이체';
 
                     if (date && amount > 0) {
                         let finalId = userProvidedId;
@@ -933,7 +992,7 @@
                             summary: summary,
                             evidence: evidence,
                             totalAmount: amount,
-                            items: [{ itemDate: date, accountItem: '사무관리비', vendor: vendor, detailSummary: summary, amount: amount }]
+                            items: [{ itemDate: date, accountItem: '사무관리비', botamCategory: botamCategory, payMethod: payMethod, vendor: vendor, detailSummary: summary, amount: amount }]
                         }, false);
                         count++;
                     }
@@ -945,7 +1004,7 @@
         reader.readAsText(file, 'EUC-KR');
     }
 
-    function addIncomeItemRow(accountItem = '', vendor = '', detailSummary = '', amount = '') {
+    function addIncomeItemRow(accountItem = '', botamCategory = '교부금_1분기', vendor = '', detailSummary = '', amount = '') {
         const tbody = document.getElementById('income-items-tbody');
         const tr = document.createElement('tr');
 
@@ -955,8 +1014,15 @@
         });
         selectHtml += `</select>`;
 
+        let botamHtml = `<select class="inc-item-botam" style="width:100%;">`;
+        botamOptions.forEach(opt => {
+            botamHtml += `<option value="${opt}" ${opt === botamCategory ? 'selected' : ''}>${opt}</option>`;
+        });
+        botamHtml += `</select>`;
+
         tr.innerHTML = `
             <td>${selectHtml}</td>
+            <td>${botamHtml}</td>
             <td><input type="text" class="inc-item-vendor" value="${vendor}" placeholder="예: 화성시청" required style="width:100%;"></td>
             <td><input type="text" class="inc-item-summary" value="${detailSummary}" placeholder="예: 보조금 교부금" required style="width:100%;"></td>
             <td><input type="number" class="inc-item-amount" value="${amount}" placeholder="숫자만 입력" oninput="calculateIncomeTotal()" required style="width:100%;"></td>
@@ -1010,6 +1076,7 @@
         itemRows.forEach(row => {
             items.push({
                 accountItem: row.querySelector('.inc-item-account').value,
+                botamCategory: row.querySelector('.inc-item-botam').value,
                 vendor: row.querySelector('.inc-item-vendor').value,
                 detailSummary: row.querySelector('.inc-item-summary').value,
                 amount: parseInt(row.querySelector('.inc-item-amount').value) || 0
@@ -1053,7 +1120,7 @@
             const tbody = document.getElementById('income-items-tbody');
             tbody.innerHTML = '';
             item.items.forEach(it => {
-                addIncomeItemRow(it.accountItem, it.vendor, it.detailSummary, it.amount);
+                addIncomeItemRow(it.accountItem, it.botamCategory || '교부금_1분기', it.vendor, it.detailSummary, it.amount);
             });
 
             document.getElementById('income-submit-btn').innerText = '입금 내역 수정 완료';
@@ -1135,8 +1202,8 @@
         });
     }
 
-    /* 2탭: 지출 세부 항목 추가 (실제 지출일자 필드 포함) */
-    function addItemRow(itemDate = '', accountItem = '', vendor = '', detailSummary = '', amount = '') {
+    /* 2탭: 지출 세부 항목 추가 (보탬e 구분 및 결제수단 추가) */
+    function addItemRow(itemDate = '', accountItem = '', botamCategory = '사무관리비', payMethod = '계좌이체', vendor = '', detailSummary = '', amount = '') {
         const tbody = document.getElementById('items-tbody');
         const tr = document.createElement('tr');
         const defaultDate = itemDate || document.getElementById('expDate').value || todayStr;
@@ -1147,9 +1214,23 @@
         });
         selectHtml += `</select>`;
 
+        let botamHtml = `<select class="item-botam" style="width:100%;">`;
+        botamOptions.forEach(opt => {
+            botamHtml += `<option value="${opt}" ${opt === botamCategory ? 'selected' : ''}>${opt}</option>`;
+        });
+        botamHtml += `</select>`;
+
+        let payHtml = `<select class="item-pay" style="width:100%;">`;
+        paymentMethodOptions.forEach(opt => {
+            payHtml += `<option value="${opt}" ${opt === payMethod ? 'selected' : ''}>${opt}</option>`;
+        });
+        payHtml += `</select>`;
+
         tr.innerHTML = `
             <td><input type="date" class="item-date" value="${defaultDate}" required style="width:100%;"></td>
             <td>${selectHtml}</td>
+            <td>${botamHtml}</td>
+            <td>${payHtml}</td>
             <td><input type="text" class="item-vendor" value="${vendor}" placeholder="예: 알파문구" required style="width:100%;"></td>
             <td><input type="text" class="item-summary" value="${detailSummary}" placeholder="예: 복사용지 구입" required style="width:100%;"></td>
             <td><input type="number" class="item-amount" value="${amount}" placeholder="숫자만 입력" oninput="calculateTotal()" required style="width:100%;"></td>
@@ -1192,6 +1273,7 @@
         if(tabId === 'print-tab') await updateSelector();
         if(tabId === 'dashboard-tab') await renderCharts();
         if(tabId === 'combined-summary-tab') await renderCombinedTable();
+        if(tabId === 'quarterly-report-tab') await renderQuarterlyReport();
     }
 
     async function generateResolutionNumber(dateString) {
@@ -1226,6 +1308,8 @@
             items.push({
                 itemDate: row.querySelector('.item-date').value || date,
                 accountItem: row.querySelector('.item-account').value,
+                botamCategory: row.querySelector('.item-botam').value,
+                payMethod: row.querySelector('.item-pay').value,
                 vendor: row.querySelector('.item-vendor').value,
                 detailSummary: row.querySelector('.item-summary').value,
                 amount: parseInt(row.querySelector('.item-amount').value) || 0
@@ -1269,7 +1353,7 @@
             const tbody = document.getElementById('items-tbody');
             tbody.innerHTML = '';
             item.items.forEach(it => {
-                addItemRow(it.itemDate || item.date, it.accountItem, it.vendor || '', it.detailSummary, it.amount);
+                addItemRow(it.itemDate || item.date, it.accountItem, it.botamCategory || '사무관리비', it.payMethod || '계좌이체', it.vendor || '', it.detailSummary, it.amount);
             });
 
             document.getElementById('submit-btn').innerText = '지출결의서 수정 완료';
@@ -1523,7 +1607,7 @@
         }
     }
 
-    /* 7탭: 세부 항목 단위 수입·지출 통합 요약 데이터 생성 */
+    /* 7탭: 수입·지출 통합 요약 데이터 생성 (월, 보탬e구분, 결제수단 추가) */
     async function getCombinedList() {
         const incList = await getIncomes();
         const expList = await getExpenditures();
@@ -1531,15 +1615,22 @@
         const combined = [];
 
         incList.forEach(inc => {
+            const month = new Date(inc.date).getMonth() + 1;
+            const day = new Date(inc.date).getDate();
+
             if (inc.items && inc.items.length > 0) {
                 inc.items.forEach(it => {
                     combined.push({
                         type: '입금',
                         id: inc.id,
+                        month: month,
+                        day: day,
                         date: inc.date,
                         fundType: inc.fundType,
                         category: inc.category,
                         accountItem: it.accountItem || '보조금수입',
+                        botamCategory: it.botamCategory || '교부금_1분기',
+                        payMethod: '계좌이체',
                         vendor: it.vendor || '-',
                         summary: it.detailSummary || inc.summary,
                         evidence: inc.evidence,
@@ -1551,10 +1642,14 @@
                 combined.push({
                     type: '입금',
                     id: inc.id,
+                    month: month,
+                    day: day,
                     date: inc.date,
                     fundType: inc.fundType,
                     category: inc.category,
                     accountItem: '보조금수입',
+                    botamCategory: '교부금_1분기',
+                    payMethod: '계좌이체',
                     vendor: '-',
                     summary: inc.summary,
                     evidence: inc.evidence,
@@ -1565,15 +1660,26 @@
         });
 
         expList.forEach(exp => {
+            const expDateObj = new Date(exp.date);
+            const month = expDateObj.getMonth() + 1;
+            const day = expDateObj.getDate();
+
             if (exp.items && exp.items.length > 0) {
                 exp.items.forEach(it => {
+                    const itemDate = it.itemDate || exp.date;
+                    const itDateObj = new Date(itemDate);
+
                     combined.push({
                         type: '지출',
                         id: exp.id,
-                        date: it.itemDate || exp.date,
+                        month: itDateObj.getMonth() + 1,
+                        day: itDateObj.getDate(),
+                        date: itemDate,
                         fundType: exp.fundType,
                         category: exp.bizName,
                         accountItem: it.accountItem || '사무관리비',
+                        botamCategory: it.botamCategory || '사무관리비',
+                        payMethod: it.payMethod || '계좌이체',
                         vendor: it.vendor || '-',
                         summary: it.detailSummary || exp.summary,
                         evidence: exp.evidence,
@@ -1585,10 +1691,14 @@
                 combined.push({
                     type: '지출',
                     id: exp.id,
+                    month: month,
+                    day: day,
                     date: exp.date,
                     fundType: exp.fundType,
                     category: exp.bizName,
                     accountItem: '사무관리비',
+                    botamCategory: '사무관리비',
+                    payMethod: '계좌이체',
                     vendor: '-',
                     summary: exp.summary,
                     evidence: exp.evidence,
@@ -1637,7 +1747,8 @@
                 const evidenceMatch = item.evidence && item.evidence.toLowerCase().includes(keyword);
                 const vendorMatch = item.vendor && item.vendor.toLowerCase().includes(keyword);
                 const accountMatch = item.accountItem && item.accountItem.toLowerCase().includes(keyword);
-                return summaryMatch || evidenceMatch || vendorMatch || accountMatch;
+                const botamMatch = item.botamCategory && item.botamCategory.toLowerCase().includes(keyword);
+                return summaryMatch || evidenceMatch || vendorMatch || accountMatch || botamMatch;
             });
         }
 
@@ -1656,17 +1767,18 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td class="text-center">${item.month}</td>
+                <td class="text-center">${item.day}</td>
                 <td class="text-center"><span class="${badgeClass}">${item.type}</span></td>
-                <td style="font-weight:bold;">${item.id}</td>
-                <td>${item.date}</td>
-                <td>${item.fundType}</td>
-                <td>${item.category}</td>
-                <td>${item.accountItem}</td>
                 <td style="font-weight:bold;">${item.vendor}</td>
-                <td>${item.summary} <span style="font-size:11px; color:#718096;">(📄 ${item.evidence})</span></td>
-                <td class="text-right" style="color:var(--income-color); font-weight:bold;">${item.incomeAmount > 0 ? item.incomeAmount.toLocaleString() + '원' : '-'}</td>
-                <td class="text-right" style="color:var(--danger-color); font-weight:bold;">${item.expenditureAmount > 0 ? item.expenditureAmount.toLocaleString() + '원' : '-'}</td>
-                <td class="text-right" style="font-weight:bold; color:var(--primary-color);">${item.runningBalance.toLocaleString()}원</td>
+                <td>${item.category}</td>
+                <td style="color:#2b6cb0; font-weight:bold;">${item.botamCategory || '-'}</td>
+                <td>${item.summary}</td>
+                <td class="text-right" style="color:var(--income-color); font-weight:bold;">${item.incomeAmount > 0 ? item.incomeAmount.toLocaleString() : ''}</td>
+                <td class="text-right" style="color:var(--danger-color); font-weight:bold;">${item.expenditureAmount > 0 ? item.expenditureAmount.toLocaleString() : ''}</td>
+                <td class="text-right" style="font-weight:bold; color:var(--primary-color);">${item.runningBalance.toLocaleString()}</td>
+                <td class="text-center">${item.payMethod || '계좌이체'}</td>
+                <td style="font-size:11px; color:#718096;">📄 ${item.evidence}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -1674,6 +1786,136 @@
         document.getElementById('comb-total-income').innerText = `${totalInc.toLocaleString()} 원`;
         document.getElementById('comb-total-exp').innerText = `${totalExp.toLocaleString()} 원`;
         document.getElementById('comb-final-balance').innerText = `${(totalInc - totalExp).toLocaleString()} 원`;
+    }
+
+    /* 8탭: 분기별 보조금 정산 보고서 자동 연산 및 출력 */
+    async function renderQuarterlyReport() {
+        const expList = await getExpenditures();
+        const budgetData = getBudgetData();
+
+        // 분기별 집행액 집계 (1-2분기: 1~6월, 3분기: 7~9월, 4분기: 10~12월)
+        const q12Spent = {};
+        const q3Spent = {};
+        const q4Spent = {};
+
+        expList.forEach(exp => {
+            const isSelf = exp.fundType === '자부담';
+            const bizKey = exp.bizName;
+
+            exp.items.forEach(it => {
+                const itemDate = new Date(it.itemDate || exp.date);
+                const m = itemDate.getMonth() + 1;
+                const amt = parseInt(it.amount) || 0;
+
+                if (m <= 6) {
+                    if (!q12Spent[bizKey]) q12Spent[bizKey] = { sub: 0, self: 0 };
+                    if (isSelf) q12Spent[bizKey].self += amt; else q12Spent[bizKey].sub += amt;
+                } else if (m >= 7 && m <= 9) {
+                    if (!q3Spent[bizKey]) q3Spent[bizKey] = { sub: 0, self: 0 };
+                    if (isSelf) q3Spent[bizKey].self += amt; else q3Spent[bizKey].sub += amt;
+                } else {
+                    if (!q4Spent[bizKey]) q4Spent[bizKey] = { sub: 0, self: 0 };
+                    if (isSelf) q4Spent[bizKey].self += amt; else q4Spent[bizKey].sub += amt;
+                }
+            });
+        });
+
+        const tbody = document.getElementById('quarterly-report-tbody');
+        tbody.innerHTML = '';
+
+        let grandTotalBudget = 0;
+        let grandTotalSubBudget = 0;
+        let grandTotalSelfBudget = 0;
+
+        let grandQ12Sub = 0, grandQ12Self = 0;
+        let grandQ3Sub = 0, grandQ3Self = 0;
+        let grandQ4Sub = 0, grandQ4Self = 0;
+
+        Object.keys(budgetData).forEach(biz => {
+            const totalB = budgetData[biz] || 0;
+            const isSelfBiz = biz === '운영비(자부담)';
+            const subB = isSelfBiz ? 0 : totalB;
+            const selfB = isSelfBiz ? totalB : 0;
+
+            const q12Sub = q12Spent[biz] ? q12Spent[biz].sub : 0;
+            const q12Self = q12Spent[biz] ? q12Spent[biz].self : 0;
+
+            const q3Sub = q3Spent[biz] ? q3Spent[biz].sub : 0;
+            const q3Self = q3Spent[biz] ? q3Spent[biz].self : 0;
+
+            const q4Sub = Math.max(0, subB - q12Sub - q3Sub);
+            const q4Self = Math.max(0, selfB - q12Self - q3Self);
+
+            grandTotalBudget += totalB;
+            grandTotalSubBudget += subB;
+            grandTotalSelfBudget += selfB;
+
+            grandQ12Sub += q12Sub; grandQ12Self += q12Self;
+            grandQ3Sub += q3Sub; grandQ3Self += q3Self;
+            grandQ4Sub += q4Sub; grandQ4Self += q4Self;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td style="font-weight:bold; text-align:left;">${biz}</td>
+                    <td class="text-right" style="font-weight:bold;">${totalB.toLocaleString()}</td>
+                    <td class="text-right">${subB > 0 ? subB.toLocaleString() : '-'}</td>
+                    <td class="text-right">${selfB > 0 ? selfB.toLocaleString() : '-'}</td>
+                    <td class="text-right">${q12Sub > 0 ? q12Sub.toLocaleString() : '-'}</td>
+                    <td class="text-right">${q12Self > 0 ? q12Self.toLocaleString() : '-'}</td>
+                    <td class="text-right highlight-red">${q3Sub > 0 ? q3Sub.toLocaleString() : '-'}</td>
+                    <td class="text-right highlight-red">${q3Self > 0 ? q3Self.toLocaleString() : '-'}</td>
+                    <td class="text-right">${q4Sub > 0 ? q4Sub.toLocaleString() : '-'}</td>
+                    <td class="text-right">${q4Self > 0 ? q4Self.toLocaleString() : '-'}</td>
+                </tr>
+            `;
+        });
+
+        // 상단 비율 및 합계 행
+        const subRate = grandTotalBudget > 0 ? ((grandTotalSubBudget / grandTotalBudget) * 100).toFixed(1) : 0;
+        const selfRate = grandTotalBudget > 0 ? ((grandTotalSelfBudget / grandTotalBudget) * 100).toFixed(1) : 0;
+
+        const q12SubRate = grandTotalBudget > 0 ? ((grandQ12Sub / grandTotalBudget) * 100).toFixed(1) : 0;
+        const q12SelfRate = grandTotalBudget > 0 ? ((grandQ12Self / grandTotalBudget) * 100).toFixed(1) : 0;
+
+        const q3SubRate = grandTotalBudget > 0 ? ((grandQ3Sub / grandTotalBudget) * 100).toFixed(1) : 0;
+        const q3SelfRate = grandTotalBudget > 0 ? ((grandQ3Self / grandTotalBudget) * 100).toFixed(1) : 0;
+
+        const q4SubRate = grandTotalBudget > 0 ? ((grandQ4Sub / grandTotalBudget) * 100).toFixed(1) : 0;
+        const q4SelfRate = grandTotalBudget > 0 ? ((grandQ4Self / grandTotalBudget) * 100).toFixed(1) : 0;
+
+        const summaryHeaderRows = `
+            <tr style="background-color:#edf2f7; font-weight:bold;">
+                <td rowspan="2" class="text-center" style="font-size:13px;">합계 / 비율</td>
+                <td class="text-right" style="font-size:13px; color:#1a365d;">${grandTotalBudget.toLocaleString()}</td>
+                <td class="text-right" style="color:#2b6cb0;">${grandTotalSubBudget.toLocaleString()}</td>
+                <td class="text-right" style="color:#dd6b20;">${grandTotalSelfBudget.toLocaleString()}</td>
+                <td class="text-right">${grandQ12Sub.toLocaleString()}</td>
+                <td class="text-right">${grandQ12Self.toLocaleString()}</td>
+                <td class="text-right highlight-red" style="font-size:13px;">${grandQ3Sub.toLocaleString()}</td>
+                <td class="text-right highlight-red" style="font-size:13px;">${grandQ3Self.toLocaleString()}</td>
+                <td class="text-right">${grandQ4Sub.toLocaleString()}</td>
+                <td class="text-right">${grandQ4Self.toLocaleString()}</td>
+            </tr>
+            <tr style="background-color:#e2e8f0; font-weight:bold;">
+                <td class="text-center">100%</td>
+                <td class="text-center" style="color:#2b6cb0;">${subRate}%</td>
+                <td class="text-center" style="color:#dd6b20;">${selfRate}%</td>
+                <td class="text-center">${q12SubRate}%</td>
+                <td class="text-center">${q12SelfRate}%</td>
+                <td class="text-center highlight-red">${q3SubRate}%</td>
+                <td class="text-center highlight-red">${q3SelfRate}%</td>
+                <td class="text-center">${q4SubRate}%</td>
+                <td class="text-center">${q4SelfRate}%</td>
+            </tr>
+        `;
+
+        tbody.innerHTML = summaryHeaderRows + tbody.innerHTML;
+    }
+
+    async function exportQuarterlyReportExcel() {
+        const table = document.getElementById('quarterly-report-table');
+        const workbook = XLSX.utils.table_to_book(table, { sheet: "분기별보조금정산보고서" });
+        XLSX.writeFile(workbook, `분기별_보조금_정산보고서_${todayStr}.xlsx`);
     }
 
     /* 2탭: 표 서식(테두리, 열 너비, 간격) 맞춤 엑셀 다운로드 */
@@ -1810,18 +2052,18 @@
         if (list.length === 0) { alert('다운로드할 통합 내역이 없습니다.'); return; }
 
         const exportRows = list.map(item => ({
+            "월": item.month,
+            "일자": item.day,
             "구분": item.type,
-            "관리번호": item.id,
-            "거래일자": item.date,
-            "회계구분": item.fundType,
-            "예산/입금항목": item.category,
-            "계정과목": item.accountItem,
-            "거래처": item.vendor,
-            "세부적요 및 내역": item.summary,
-            "증빙서류": item.evidence,
-            "입금액(원)": item.incomeAmount,
-            "지출액(원)": item.expenditureAmount,
-            "누적 잔액(원)": item.runningBalance
+            "거래처/입금처": item.vendor,
+            "대분류(사업)": item.category,
+            "보탬e구분": item.botamCategory || '-',
+            "세부사업/항목": item.summary,
+            "입금(원)": item.incomeAmount,
+            "출금(원)": item.expenditureAmount,
+            "잔액(원)": item.runningBalance,
+            "결제수단": item.payMethod || '계좌이체',
+            "증빙서류": item.evidence
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
@@ -2179,11 +2421,13 @@
             renderRecentTable();
             renderSummary();
             renderCombinedTable();
+            renderQuarterlyReport();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'incomes' }, () => {
             renderRecentIncomeTable();
             renderSummary();
             renderCombinedTable();
+            renderQuarterlyReport();
         })
         .subscribe();
 
