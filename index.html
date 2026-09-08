@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V18 (Supabase 연동)</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V19 (Supabase 연동)</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,7 +33,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; line-height: 1.6; }
-        .container { max-width: 1300px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .container { max-width: 1350px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         header h1 { font-size: 22px; color: var(--primary-color); }
@@ -64,6 +64,8 @@
         .items-table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 0; }
         .items-table th, .items-table td { padding: 8px; border: 1px solid var(--border-color); font-size: 12px; }
         .items-table th { background-color: #edf2f7; text-align: center; }
+
+        .custom-input-box { margin-top: 4px; padding: 6px; font-size: 12px; border: 1px solid #3182ce; border-radius: 3px; background-color: #f0f8ff; width: 100%; }
 
         .filter-bar { display: flex; gap: 10px; align-items: center; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 15px; flex-wrap: wrap; }
         .filter-bar input, .filter-bar select { padding: 6px 10px; font-size: 13px; }
@@ -141,7 +143,6 @@
         .print-footer-logo { margin-top: 35px; text-align: center; border-top: 1px solid #000; padding-top: 15px; }
         .print-footer-text { font-size: 20px; font-weight: bold; letter-spacing: 3px; color: #1a365d; }
 
-        /* 분기 정산 보고서 전용 서식 */
         .report-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
         .report-table th, .report-table td { border: 1px solid #1a365d; padding: 6px 4px; text-align: center; }
         .report-table th { background-color: #1a365d; color: #fff; font-weight: bold; }
@@ -160,7 +161,7 @@
 
 <div class="container">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V18</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V19</h1>
         
         <div class="backup-control-bar">
             <button class="btn-sm btn-income" onclick="exportData()" style="padding:6px 12px; font-size:13px;">📥 백업 파일 다운로드</button>
@@ -332,18 +333,18 @@
 
             <div class="items-section">
                 <div class="items-header">
-                    <label style="margin-bottom:0;">■ 세부 지출 항목 및 지출처 입력 (보탬e 구분 및 결제수단 지정 가능)</label>
+                    <label style="margin-bottom:0;">■ 세부 지출 항목 및 지출처 입력 ('기타' 선택 시 직접 입력 가능)</label>
                     <button type="button" class="btn-add-item" onclick="addItemRow()">+ 항목 추가</button>
                 </div>
                 <table class="items-table" id="items-table">
                     <thead>
                         <tr>
                             <th style="width: 12%;">실제 지출일자</th>
-                            <th style="width: 14%;">목/세목 계정과목</th>
-                            <th style="width: 14%;">보탬e 구분</th>
-                            <th style="width: 12%;">결제수단</th>
+                            <th style="width: 16%;">목/세목 계정과목</th>
+                            <th style="width: 16%;">보탬e 구분</th>
+                            <th style="width: 10%;">결제수단</th>
                             <th style="width: 15%;">지출처 (지급처)</th>
-                            <th style="width: 18%;">세부 적요 및 내역</th>
+                            <th style="width: 16%;">세부 적요 및 내역</th>
                             <th style="width: 10%;">금액 (원)</th>
                             <th style="width: 5%;">삭제</th>
                         </tr>
@@ -562,7 +563,7 @@
         </table>
     </div>
 
-    <!-- 8 탭: 분기별 정산 보고서 (분기 선택 자동 변경 적용) -->
+    <!-- 8 탭: 분기별 정산 보고서 -->
     <div id="quarterly-report-tab" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f0f4f8; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
             <div style="display:flex; align-items:center; gap:12px;">
@@ -623,16 +624,39 @@
         return saved ? JSON.parse(saved) : { ...defaultIncomeData };
     }
 
+    // 세분화 및 분리된 목/세목 계정과목 목록
     const accountOptions = [
-        "급여 및 제수당", "사회보험 및 퇴직급여", "사무관리비", "사무용품비", 
-        "공공운영비", "여비교통비 및 급량비", "운영수당", 
-        "강사비 및 교육운영비", "행사 및 홍보비", "사업비기타"
+        "급여 및 제수당", 
+        "사회보험", 
+        "퇴직급여", 
+        "사무관리비", 
+        "사무용품비", 
+        "공공운영비", 
+        "여비교통비", 
+        "급량비", 
+        "운영수당", 
+        "강사비", 
+        "사업운영비", 
+        "행사 및 홍보비", 
+        "사업비기타", 
+        "기타"
     ];
 
+    // 교체된 보탬e 구분 표준 목록 (13개)
     const botamOptions = [
-        "사무관리비", "보수", "사회보험 부담", "퇴직적립금 부담", 
-        "교부금_1분기", "교부금_2분기", "교부금_3분기", "교부금_4분기",
-        "공공운영비", "1 교육사업(역량강화)", "2 인식개선", "3 권익증진", "4 건강증진", "기타"
+        "교육사업(역량강화)",
+        "권익증진",
+        "인식개선",
+        "건강증진",
+        "네트워크",
+        "협력사업",
+        "공공운영비",
+        "보수",
+        "사무관리비",
+        "사무용품비",
+        "사회보험 부담",
+        "퇴직적립금 부담",
+        "기타"
     ];
 
     const paymentMethodOptions = ["계좌이체", "카드", "자동이체", "기타"];
@@ -807,7 +831,7 @@
         const incomes = await getIncomes();
         const expenditures = await getExpenditures();
         const backupData = {
-            version: "V18",
+            version: "V19",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -874,7 +898,7 @@
     function downloadExpenditureSampleCSV() {
         const csvContent = "\uFEFF결의번호,일자,구분,예산항목,세부적요,금액,지출처,증빙서류,보탬e구분,결제수단\n" +
             ",2026-09-02,보조금,운영비,사무실 복사용지 구매,85000,알파문구,영수증.pdf,사무관리비,카드\n" +
-            "결의-2026-099,2026-09-10,자부담,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사,카드영수증.pdf,1 교육사업(역량강화),계좌이체\n";
+            "결의-2026-099,2026-09-10,자부담,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사,카드영수증.pdf,교육사업(역량강화),계좌이체\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -1003,15 +1027,9 @@
         });
         selectHtml += `</select>`;
 
-        let botamHtml = `<select class="inc-item-botam" style="width:100%;">`;
-        botamOptions.forEach(opt => {
-            botamHtml += `<option value="${opt}" ${opt === botamCategory ? 'selected' : ''}>${opt}</option>`;
-        });
-        botamHtml += `</select>`;
-
         tr.innerHTML = `
             <td>${selectHtml}</td>
-            <td>${botamHtml}</td>
+            <td><input type="text" class="inc-item-botam" value="${botamCategory}" placeholder="보탬e 구분" style="width:100%;"></td>
             <td><input type="text" class="inc-item-vendor" value="${vendor}" placeholder="예: 화성시청" required style="width:100%;"></td>
             <td><input type="text" class="inc-item-summary" value="${detailSummary}" placeholder="예: 보조금 교부금" required style="width:100%;"></td>
             <td><input type="number" class="inc-item-amount" value="${amount}" placeholder="숫자만 입력" oninput="calculateIncomeTotal()" required style="width:100%;"></td>
@@ -1191,24 +1209,35 @@
         });
     }
 
-    /* 2탭: 지출 세부 항목 추가 */
+    /* 2탭: 지출 세부 항목 추가 ('기타' 선택 시 직접 입력 처리 동적 구현) */
     function addItemRow(itemDate = '', accountItem = '', botamCategory = '사무관리비', payMethod = '계좌이체', vendor = '', detailSummary = '', amount = '') {
         const tbody = document.getElementById('items-tbody');
         const tr = document.createElement('tr');
         const defaultDate = itemDate || document.getElementById('expDate').value || todayStr;
 
-        let selectHtml = `<select class="item-account" required style="width:100%;">`;
+        // 목/세목 계정과목 셀 처리
+        let accountIsCustom = accountItem && !accountOptions.includes(accountItem);
+        let selectedAccountVal = accountIsCustom ? "기타" : (accountItem || accountOptions[0]);
+
+        let selectHtml = `<select class="item-account" onchange="toggleCustomInput(this)" required style="width:100%;">`;
         accountOptions.forEach(opt => {
-            selectHtml += `<option value="${opt}" ${opt === accountItem ? 'selected' : ''}>${opt}</option>`;
+            selectHtml += `<option value="${opt}" ${opt === selectedAccountVal ? 'selected' : ''}>${opt}</option>`;
         });
         selectHtml += `</select>`;
+        selectHtml += `<input type="text" class="custom-input-box custom-account-input" placeholder="계정과목 직접 입력" value="${accountIsCustom ? accountItem : ''}" style="display: ${selectedAccountVal === '기타' ? 'block' : 'none'};">`;
 
-        let botamHtml = `<select class="item-botam" style="width:100%;">`;
+        // 보탬e 구분 셀 처리
+        let botamIsCustom = botamCategory && !botamOptions.includes(botamCategory);
+        let selectedBotamVal = botamIsCustom ? "기타" : (botamCategory || botamOptions[8]);
+
+        let botamHtml = `<select class="item-botam" onchange="toggleCustomInput(this)" style="width:100%;">`;
         botamOptions.forEach(opt => {
-            botamHtml += `<option value="${opt}" ${opt === botamCategory ? 'selected' : ''}>${opt}</option>`;
+            botamHtml += `<option value="${opt}" ${opt === selectedBotamVal ? 'selected' : ''}>${opt}</option>`;
         });
         botamHtml += `</select>`;
+        botamHtml += `<input type="text" class="custom-input-box custom-botam-input" placeholder="보탬e구분 직접 입력" value="${botamIsCustom ? botamCategory : ''}" style="display: ${selectedBotamVal === '기타' ? 'block' : 'none'};">`;
 
+        // 결제수단 셀 처리
         let payHtml = `<select class="item-pay" style="width:100%;">`;
         paymentMethodOptions.forEach(opt => {
             payHtml += `<option value="${opt}" ${opt === payMethod ? 'selected' : ''}>${opt}</option>`;
@@ -1227,6 +1256,19 @@
         `;
         tbody.appendChild(tr);
         calculateTotal();
+    }
+
+    function toggleCustomInput(selectElem) {
+        const customInput = selectElem.nextElementSibling;
+        if (customInput && customInput.classList.contains('custom-input-box')) {
+            if (selectElem.value === '기타') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+        }
     }
 
     function updateAllItemDates(newDate) {
@@ -1294,10 +1336,18 @@
 
         const items = [];
         itemRows.forEach(row => {
+            const accountSelect = row.querySelector('.item-account').value;
+            const customAccount = row.querySelector('.custom-account-input').value.trim();
+            const finalAccount = (accountSelect === '기타' && customAccount) ? customAccount : accountSelect;
+
+            const botamSelect = row.querySelector('.item-botam').value;
+            const customBotam = row.querySelector('.custom-botam-input').value.trim();
+            const finalBotam = (botamSelect === '기타' && customBotam) ? customBotam : botamSelect;
+
             items.push({
                 itemDate: row.querySelector('.item-date').value || date,
-                accountItem: row.querySelector('.item-account').value,
-                botamCategory: row.querySelector('.item-botam').value,
+                accountItem: finalAccount,
+                botamCategory: finalBotam,
                 payMethod: row.querySelector('.item-pay').value,
                 vendor: row.querySelector('.item-vendor').value,
                 detailSummary: row.querySelector('.item-summary').value,
@@ -1999,7 +2049,7 @@
         XLSX.writeFile(workbook, `${qVal}분기_보조금_정산보고서_${todayStr}.xlsx`);
     }
 
-    /* 2탭: 표 서식(테두리, 열 너비, 간격) 맞춤 엑셀 다운로드 */
+    /* 2탭: 표 서식 맞춤 엑셀 다운로드 */
     async function exportTab2ExcelFormatted() {
         const list = await getExpenditures();
         if (list.length === 0) { alert('다운로드할 지출 내역이 없습니다.'); return; }
