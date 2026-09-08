@@ -809,38 +809,38 @@
         reader.readAsText(file);
     }
 
-    /* CSV 샘플 양식 다운로드 기능 */
+    /* 화면 표 구조와 1:1 일치하는 CSV 샘플 양식 다운로드 */
     function downloadIncomeSampleCSV() {
-        const csvContent = "\uFEFF일자,입금항목,통합적요,금액,입금처\n" +
-            "2026-09-01,보조금,2026년 3차 보조금 입금,5000000,화성시청\n" +
-            "2026-09-05,이자,예금 이자 수입,1250,농협은행\n";
+        const csvContent = "\uFEFF입금번호,일자,구분,입금항목,세부적요,금액,입금처,증빙서류\n" +
+            ",2026-09-01,보조금,보조금,2026년 3차 보조금 입금,5000000,화성시청,통장입금통지서.pdf\n" +
+            "입금-2026-099,2026-09-05,보조금,이자,예금 이자 수입,1250,농협은행,통장사본.pdf\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", "입금내역_일괄등록_샘플양식.csv");
+        link.setAttribute("download", "입금내역_일괄등록_표준양식.csv");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
     function downloadExpenditureSampleCSV() {
-        const csvContent = "\uFEFF지출일자,예산항목,통합적요,금액,지출처\n" +
-            "2026-09-02,운영비,사무실 복사용지 및 소모품 구매,85000,알파문구\n" +
-            "2026-09-10,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사\n";
+        const csvContent = "\uFEFF결의번호,일자,구분,예산항목,세부적요,금액,지출처,증빙서류\n" +
+            ",2026-09-02,보조금,운영비,사무실 복사용지 구매,85000,알파문구,영수증.pdf\n" +
+            "결의-2026-099,2026-09-10,자부담,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사,카드영수증.pdf\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", "지출내역_일괄등록_샘플양식.csv");
+        link.setAttribute("download", "지출내역_일괄등록_표준양식.csv");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    /* CSV 엑셀 일괄 업로드 */
+    /* CSV 엑셀 일괄 업로드 - 표 구조 1:1 연동 및 유연한 번호 처리 */
     async function importCSVIncomes(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -849,27 +849,37 @@
         reader.onload = async function(e) {
             const lines = e.target.result.split('\n');
             let count = 0;
+            const existingList = await getIncomes();
+            const existingIds = new Set(existingList.map(item => item.id));
 
             for (let idx = 0; idx < lines.length; idx++) {
                 const line = lines[idx];
                 if (idx === 0 || !line.trim()) continue;
                 const cols = line.split(',');
-                if (cols.length >= 4) {
-                    const date = cols[0].trim();
-                    const category = cols[1].trim() || '보조금';
-                    const summary = cols[2].trim() || '통장 일괄 입금';
-                    const amount = parseInt(cols[3].trim()) || 0;
-                    const vendor = cols[4] ? cols[4].trim() : '통장입금';
+                if (cols.length >= 6) {
+                    let userProvidedId = cols[0] ? cols[0].trim() : '';
+                    const date = cols[1] ? cols[1].trim() : todayStr;
+                    const fundType = cols[2] ? cols[2].trim() : '보조금';
+                    const category = cols[3] ? cols[3].trim() : '보조금';
+                    const summary = cols[4] ? cols[4].trim() : '일괄 등록 내역';
+                    const amount = parseInt(cols[5] ? cols[5].trim() : '0') || 0;
+                    const vendor = cols[6] ? cols[6].trim() : '지급처/입금처';
+                    const evidence = cols[7] ? cols[7].trim() : 'CSV일괄등록';
 
                     if (date && amount > 0) {
-                        const id = await generateIncomeNumber(date);
+                        let finalId = userProvidedId;
+                        if (!finalId || existingIds.has(finalId)) {
+                            finalId = await generateIncomeNumber(date);
+                        }
+                        existingIds.add(finalId);
+
                         await saveIncomeToDB({
-                            id: id,
-                            fundType: category === '자부담' ? '자부담' : '보조금',
+                            id: finalId,
+                            fundType: fundType.includes('자부담') ? '자부담' : '보조금',
                             category: category,
                             date: date,
                             summary: summary,
-                            evidence: '통장인쇄내역_일괄등록.csv',
+                            evidence: evidence,
                             totalAmount: amount,
                             items: [{ accountItem: '보조금수입', vendor: vendor, detailSummary: summary, amount: amount }]
                         }, false);
@@ -877,7 +887,7 @@
                     }
                 }
             }
-            alert(`${count}건의 입금 내역이 일괄 등록되었습니다.`);
+            alert(`${count}건의 입금 내역이 성공적으로 일괄 등록되었습니다.`);
             await renderRecentIncomeTable();
         };
         reader.readAsText(file, 'EUC-KR');
@@ -891,27 +901,37 @@
         reader.onload = async function(e) {
             const lines = e.target.result.split('\n');
             let count = 0;
+            const existingList = await getExpenditures();
+            const existingIds = new Set(existingList.map(item => item.id));
 
             for (let idx = 0; idx < lines.length; idx++) {
                 const line = lines[idx];
                 if (idx === 0 || !line.trim()) continue;
                 const cols = line.split(',');
-                if (cols.length >= 4) {
-                    const date = cols[0].trim();
-                    const bizName = cols[1].trim() || '운영비';
-                    const summary = cols[2].trim() || '통장 일괄 지출';
-                    const amount = parseInt(cols[3].trim()) || 0;
-                    const vendor = cols[4] ? cols[4].trim() : '거래처';
+                if (cols.length >= 6) {
+                    let userProvidedId = cols[0] ? cols[0].trim() : '';
+                    const date = cols[1] ? cols[1].trim() : todayStr;
+                    const fundType = cols[2] ? cols[2].trim() : '보조금';
+                    const bizName = cols[3] ? cols[3].trim() : '운영비';
+                    const summary = cols[4] ? cols[4].trim() : '일괄 등록 지출';
+                    const amount = parseInt(cols[5] ? cols[5].trim() : '0') || 0;
+                    const vendor = cols[6] ? cols[6].trim() : '거래처';
+                    const evidence = cols[7] ? cols[7].trim() : 'CSV일괄등록';
 
                     if (date && amount > 0) {
-                        const id = await generateResolutionNumber(date);
+                        let finalId = userProvidedId;
+                        if (!finalId || existingIds.has(finalId)) {
+                            finalId = await generateResolutionNumber(date);
+                        }
+                        existingIds.add(finalId);
+
                         await saveExpenditureToDB({
-                            id: id,
-                            fundType: bizName.includes('자부담') ? '자부담' : '보조금',
+                            id: finalId,
+                            fundType: fundType.includes('자부담') ? '자부담' : '보조금',
                             bizName: bizName,
                             date: date,
                             summary: summary,
-                            evidence: '통장지출내역_일괄등록.csv',
+                            evidence: evidence,
                             totalAmount: amount,
                             items: [{ itemDate: date, accountItem: '사무관리비', vendor: vendor, detailSummary: summary, amount: amount }]
                         }, false);
@@ -919,7 +939,7 @@
                     }
                 }
             }
-            alert(`${count}건의 지출결의서가 일괄 등록되었습니다.`);
+            alert(`${count}건의 지출 결의 내역이 성공적으로 일괄 등록되었습니다.`);
             await renderRecentTable();
         };
         reader.readAsText(file, 'EUC-KR');
@@ -1679,7 +1699,6 @@
             });
         });
 
-        // 합계 행 추가
         exportRows.push({
             "결의 번호": "합계",
             "지출 일자": "",
@@ -1692,15 +1711,14 @@
 
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
 
-        // 컬럼 너비(열 간격) 맞춤 지정
         worksheet['!cols'] = [
-            { wch: 15 }, // 결의 번호
-            { wch: 12 }, // 지출 일자
-            { wch: 10 }, // 회계 구분
-            { wch: 22 }, // 예산 항목
-            { wch: 35 }, // 세부항목 및 주요지출처
-            { wch: 16 }, // 총 금액(원)
-            { wch: 25 }  // 증빙 서류
+            { wch: 15 },
+            { wch: 12 },
+            { wch: 10 },
+            { wch: 22 },
+            { wch: 35 },
+            { wch: 16 },
+            { wch: 25 }
         ];
 
         const workbook = XLSX.utils.book_new();
