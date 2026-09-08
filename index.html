@@ -241,6 +241,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 30px 0 10px 0;">
             <h2 style="font-size: 18px;">등록된 입금 내역 목록</h2>
             <div style="display:flex; gap:8px;">
+                <button class="btn-sm btn-secondary" onclick="downloadIncomeSampleCSV()">📥 입금 일괄등록 샘플양식 다운로드</button>
                 <button class="btn-excel" onclick="exportTab1Excel()">💚 1탭 입금목록 엑셀 다운로드</button>
                 <label for="income-csv-input" class="btn-sm btn-income" style="padding:6px 12px; font-size:12px; cursor:pointer;">📊 CSV 엑셀 일괄 등록</label>
                 <input type="file" id="income-csv-input" accept=".csv" onchange="importCSVIncomes(event)" style="display:none;">
@@ -355,7 +356,8 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 30px 0 10px 0;">
             <h2 style="font-size: 18px;">등록된 지출 내역 목록</h2>
             <div style="display:flex; gap:8px;">
-                <button class="btn-excel" onclick="exportTab2Excel()">💚 2탭 지출목록 엑셀 다운로드</button>
+                <button class="btn-sm btn-secondary" onclick="downloadExpenditureSampleCSV()">📥 지출 일괄등록 샘플양식 다운로드</button>
+                <button class="btn-excel" onclick="exportTab2ExcelFormatted()">💚 2탭 지출목록 서식맞춤 엑셀 다운로드</button>
                 <label for="exp-csv-input" class="btn-sm btn-income" style="padding:6px 12px; font-size:12px; cursor:pointer; background:var(--primary-color);">📊 CSV 엑셀 일괄 등록</label>
                 <input type="file" id="exp-csv-input" accept=".csv" onchange="importCSVExpenditures(event)" style="display:none;">
             </div>
@@ -805,6 +807,37 @@
             }
         };
         reader.readAsText(file);
+    }
+
+    /* CSV 샘플 양식 다운로드 기능 */
+    function downloadIncomeSampleCSV() {
+        const csvContent = "\uFEFF일자,입금항목,통합적요,금액,입금처\n" +
+            "2026-09-01,보조금,2026년 3차 보조금 입금,5000000,화성시청\n" +
+            "2026-09-05,이자,예금 이자 수입,1250,농협은행\n";
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "입금내역_일괄등록_샘플양식.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadExpenditureSampleCSV() {
+        const csvContent = "\uFEFF지출일자,예산항목,통합적요,금액,지출처\n" +
+            "2026-09-02,운영비,사무실 복사용지 및 소모품 구매,85000,알파문구\n" +
+            "2026-09-10,건강증진,힐링 프로그램 강사료 지급,300000,홍길동강사\n";
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "지출내역_일괄등록_샘플양식.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     /* CSV 엑셀 일괄 업로드 */
@@ -1477,7 +1510,6 @@
 
         const combined = [];
 
-        // 1. 입금 세부 항목들 분리하여 행 생성
         incList.forEach(inc => {
             if (inc.items && inc.items.length > 0) {
                 inc.items.forEach(it => {
@@ -1512,14 +1544,13 @@
             }
         });
 
-        // 2. 지출 세부 항목들 분리하여 행 생성 (개별 지출일자 반영)
         expList.forEach(exp => {
             if (exp.items && exp.items.length > 0) {
                 exp.items.forEach(it => {
                     combined.push({
                         type: '지출',
                         id: exp.id,
-                        date: it.itemDate || exp.date, // 세부 항목 지출일자 우선 사용
+                        date: it.itemDate || exp.date,
                         fundType: exp.fundType,
                         category: exp.bizName,
                         accountItem: it.accountItem || '사무관리비',
@@ -1547,7 +1578,6 @@
             }
         });
 
-        // 날짜순(오름차순) 정렬 후 누적 잔액 순차 계산
         combined.sort((a, b) => new Date(a.date) - new Date(b.date));
 
         let runningBalance = 0;
@@ -1556,7 +1586,6 @@
             item.runningBalance = runningBalance;
         });
 
-        // 사용자에게는 최신 날짜가 위로 오도록 내림차순 리턴
         return combined.reverse();
     }
 
@@ -1627,7 +1656,58 @@
         document.getElementById('comb-final-balance').innerText = `${(totalInc - totalExp).toLocaleString()} 원`;
     }
 
-    /* 엑셀 다운로드 (SheetJS 기능) */
+    /* 2탭: 표 서식(테두리, 열 너비, 간격) 맞춤 엑셀 다운로드 */
+    async function exportTab2ExcelFormatted() {
+        const list = await getExpenditures();
+        if (list.length === 0) { alert('다운로드할 지출 내역이 없습니다.'); return; }
+
+        const exportRows = [];
+        let totalSum = 0;
+
+        list.forEach(exp => {
+            const vendors = exp.items ? [...new Set(exp.items.map(i => i.vendor).filter(Boolean))].join(', ') : '-';
+            totalSum += exp.totalAmount;
+
+            exportRows.push({
+                "결의 번호": exp.id,
+                "지출 일자": exp.date,
+                "회계 구분": exp.fundType,
+                "예산 항목": exp.bizName,
+                "세부항목 및 주요지출처": `${exp.items ? exp.items.length : 0}개 항목 (${vendors})`,
+                "총 금액(원)": exp.totalAmount,
+                "증빙 서류": exp.evidence
+            });
+        });
+
+        // 합계 행 추가
+        exportRows.push({
+            "결의 번호": "합계",
+            "지출 일자": "",
+            "회계 구분": "",
+            "예산 항목": "",
+            "세부항목 및 주요지출처": "",
+            "총 금액(원)": totalSum,
+            "증빙 서류": ""
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(exportRows);
+
+        // 컬럼 너비(열 간격) 맞춤 지정
+        worksheet['!cols'] = [
+            { wch: 15 }, // 결의 번호
+            { wch: 12 }, // 지출 일자
+            { wch: 10 }, // 회계 구분
+            { wch: 22 }, // 예산 항목
+            { wch: 35 }, // 세부항목 및 주요지출처
+            { wch: 16 }, // 총 금액(원)
+            { wch: 25 }  // 증빙 서류
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "지출내역목록");
+        XLSX.writeFile(workbook, `지출내역목록_서식맞춤_${todayStr}.xlsx`);
+    }
+
     async function exportTab1Excel() {
         const list = await getIncomes();
         if (list.length === 0) { alert('다운로드할 입금 내역이 없습니다.'); return; }
@@ -1669,51 +1749,6 @@
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "입금내역목록");
         XLSX.writeFile(workbook, `입금내역_목록_${todayStr}.xlsx`);
-    }
-
-    async function exportTab2Excel() {
-        const list = await getExpenditures();
-        if (list.length === 0) { alert('다운로드할 지출 내역이 없습니다.'); return; }
-
-        const exportRows = [];
-        list.forEach(exp => {
-            if (exp.items && exp.items.length > 0) {
-                exp.items.forEach(it => {
-                    exportRows.push({
-                        "결의번호": exp.id,
-                        "결의일자": exp.date,
-                        "실제지출일자": it.itemDate || exp.date,
-                        "회계구분": exp.fundType,
-                        "예산항목": exp.bizName,
-                        "통합적요": exp.summary,
-                        "증빙서류": exp.evidence,
-                        "계정과목": it.accountItem,
-                        "지출처": it.vendor,
-                        "세부분역": it.detailSummary,
-                        "금액(원)": it.amount
-                    });
-                });
-            } else {
-                exportRows.push({
-                    "결의번호": exp.id,
-                    "결의일자": exp.date,
-                    "실제지출일자": exp.date,
-                    "회계구분": exp.fundType,
-                    "예산항목": exp.bizName,
-                    "통합적요": exp.summary,
-                    "증빙서류": exp.evidence,
-                    "계정과목": "-",
-                    "지출처": "-",
-                    "세부분역": "-",
-                    "금액(원)": exp.totalAmount
-                });
-            }
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(exportRows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "지출내역목록");
-        XLSX.writeFile(workbook, `지출내역_목록_${todayStr}.xlsx`);
     }
 
     async function exportTab3Excel() {
