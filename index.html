@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V17 (Supabase 연동)</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V18 (Supabase 연동)</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -146,7 +146,7 @@
         .report-table th, .report-table td { border: 1px solid #1a365d; padding: 6px 4px; text-align: center; }
         .report-table th { background-color: #1a365d; color: #fff; font-weight: bold; }
         .report-table th.sub-header { background-color: #2b6cb0; color: #fff; }
-        .report-table td.highlight-red { border: 2px solid #e53e3e; background-color: #fff5f5; font-weight: bold; }
+        .report-table td.highlight-red, .report-table th.highlight-red { border: 2px solid #e53e3e; background-color: #fff5f5; font-weight: bold; }
 
         @media print {
             body { background: white; padding: 0; }
@@ -160,7 +160,7 @@
 
 <div class="container">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V17</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V18</h1>
         
         <div class="backup-control-bar">
             <button class="btn-sm btn-income" onclick="exportData()" style="padding:6px 12px; font-size:13px;">📥 백업 파일 다운로드</button>
@@ -562,37 +562,26 @@
         </table>
     </div>
 
-    <!-- 8 탭: 분기별 정산 보고서 -->
+    <!-- 8 탭: 분기별 정산 보고서 (분기 선택 자동 변경 적용) -->
     <div id="quarterly-report-tab" class="tab-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="font-size: 18px; color: #805ad5;">■ 2026년도 분기별 보조금 정산 보고서 (시청 제출 실적보고용)</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f0f4f8; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <strong style="font-size: 16px; color: #805ad5;">📅 정산 분기 선택:</strong>
+                <select id="report-quarter-select" onchange="renderQuarterlyReport()" style="font-size: 15px; font-weight: bold; padding: 6px 15px; border: 2px solid #805ad5; border-radius: 4px; color: #4c51bf; background: #fff;">
+                    <option value="1">1분기 지급신청 보고서</option>
+                    <option value="2">2분기 지급신청 보고서</option>
+                    <option value="3" selected>3분기 지급신청 보고서</option>
+                    <option value="4">4분기 최종 정산 보고서</option>
+                </select>
+            </div>
             <div style="display:flex; gap:8px;">
-                <button class="btn-excel" onclick="exportQuarterlyReportExcel()">💚 분기정산보고서 엑셀 다운로드</button>
+                <button class="btn-excel" onclick="exportQuarterlyReportExcel()">💚 선택분기 보고서 엑셀 다운로드</button>
                 <button class="btn btn-secondary" onclick="window.print()" style="padding: 6px 12px; font-size:12px;">🖨️ 보고서 인쇄</button>
             </div>
         </div>
 
         <table class="report-table" id="quarterly-report-table">
-            <thead>
-                <tr>
-                    <th rowspan="2" style="width: 15%;">구분</th>
-                    <th rowspan="2" style="width: 10%;">총 예산</th>
-                    <th colspan="2" style="width: 16%;">2026년 예산</th>
-                    <th colspan="2" style="width: 16%;">기지급액 (1-2분기)</th>
-                    <th colspan="2" style="width: 20%; background-color:#e53e3e;" class="highlight-red">금회 지급신청액 (3분기)</th>
-                    <th colspan="2" style="width: 18%;">지급신청잔액 (4분기)</th>
-                </tr>
-                <tr>
-                    <th class="sub-header">보조금</th>
-                    <th class="sub-header">자부담</th>
-                    <th class="sub-header">보조금</th>
-                    <th class="sub-header">자부담</th>
-                    <th class="sub-header" style="background-color:#c53030;">보조금</th>
-                    <th class="sub-header" style="background-color:#c53030;">자부담</th>
-                    <th class="sub-header">보조금</th>
-                    <th class="sub-header">자부담</th>
-                </tr>
-            </thead>
+            <thead id="quarterly-report-thead"></thead>
             <tbody id="quarterly-report-tbody"></tbody>
         </table>
     </div>
@@ -818,7 +807,7 @@
         const incomes = await getIncomes();
         const expenditures = await getExpenditures();
         const backupData = {
-            version: "V17",
+            version: "V18",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1202,7 +1191,7 @@
         });
     }
 
-    /* 2탭: 지출 세부 항목 추가 (보탬e 구분 및 결제수단 추가) */
+    /* 2탭: 지출 세부 항목 추가 */
     function addItemRow(itemDate = '', accountItem = '', botamCategory = '사무관리비', payMethod = '계좌이체', vendor = '', detailSummary = '', amount = '') {
         const tbody = document.getElementById('items-tbody');
         const tr = document.createElement('tr');
@@ -1607,7 +1596,7 @@
         }
     }
 
-    /* 7탭: 수입·지출 통합 요약 데이터 생성 (월, 보탬e구분, 결제수단 추가) */
+    /* 7탭: 수입·지출 통합 요약 데이터 생성 */
     async function getCombinedList() {
         const incList = await getIncomes();
         const expList = await getExpenditures();
@@ -1788,15 +1777,14 @@
         document.getElementById('comb-final-balance').innerText = `${(totalInc - totalExp).toLocaleString()} 원`;
     }
 
-    /* 8탭: 분기별 보조금 정산 보고서 자동 연산 및 출력 */
+    /* 8탭: 동적 분기선택 정산 보고서 자동 연산 및 표 생성 */
     async function renderQuarterlyReport() {
+        const selectedQ = parseInt(document.getElementById('report-quarter-select').value) || 3;
         const expList = await getExpenditures();
         const budgetData = getBudgetData();
 
-        // 분기별 집행액 집계 (1-2분기: 1~6월, 3분기: 7~9월, 4분기: 10~12월)
-        const q12Spent = {};
-        const q3Spent = {};
-        const q4Spent = {};
+        // 분기별 지출액 동적집계
+        const qSpent = { 1: {}, 2: {}, 3: {}, 4: {} };
 
         expList.forEach(exp => {
             const isSelf = exp.fundType === '자부담';
@@ -1807,29 +1795,87 @@
                 const m = itemDate.getMonth() + 1;
                 const amt = parseInt(it.amount) || 0;
 
-                if (m <= 6) {
-                    if (!q12Spent[bizKey]) q12Spent[bizKey] = { sub: 0, self: 0 };
-                    if (isSelf) q12Spent[bizKey].self += amt; else q12Spent[bizKey].sub += amt;
-                } else if (m >= 7 && m <= 9) {
-                    if (!q3Spent[bizKey]) q3Spent[bizKey] = { sub: 0, self: 0 };
-                    if (isSelf) q3Spent[bizKey].self += amt; else q3Spent[bizKey].sub += amt;
-                } else {
-                    if (!q4Spent[bizKey]) q4Spent[bizKey] = { sub: 0, self: 0 };
-                    if (isSelf) q4Spent[bizKey].self += amt; else q4Spent[bizKey].sub += amt;
-                }
+                let q = 1;
+                if (m >= 4 && m <= 6) q = 2;
+                else if (m >= 7 && m <= 9) q = 3;
+                else if (m >= 10) q = 4;
+
+                if (!qSpent[q][bizKey]) qSpent[q][bizKey] = { sub: 0, self: 0 };
+                if (isSelf) qSpent[q][bizKey].self += amt; else qSpent[q][bizKey].sub += amt;
             });
         });
 
+        const thead = document.getElementById('quarterly-report-thead');
         const tbody = document.getElementById('quarterly-report-tbody');
+
+        // 분기별 표 헤더 동적 구성
+        let headHtml = `
+            <tr>
+                <th rowspan="2" style="width: 16%;">구분</th>
+                <th rowspan="2" style="width: 12%;">총 예산</th>
+                <th colspan="2" style="width: 18%;">2026년 예산</th>
+        `;
+
+        if (selectedQ === 1) {
+            headHtml += `
+                <th colspan="2" class="highlight-red" style="background-color:#e53e3e;">금회 지급신청액 (1분기)</th>
+            </tr>
+            <tr>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header" style="background-color:#c53030;">보조금</th>
+                <th class="sub-header" style="background-color:#c53030;">자부담</th>
+            </tr>`;
+        } else if (selectedQ === 2) {
+            headHtml += `
+                <th colspan="2">기지급액 (1분기)</th>
+                <th colspan="2" class="highlight-red" style="background-color:#e53e3e;">금회 지급신청액 (2분기)</th>
+            </tr>
+            <tr>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header" style="background-color:#c53030;">보조금</th>
+                <th class="sub-header" style="background-color:#c53030;">자부담</th>
+            </tr>`;
+        } else if (selectedQ === 3) {
+            headHtml += `
+                <th colspan="2">기지급액 (1-2분기)</th>
+                <th colspan="2" class="highlight-red" style="background-color:#e53e3e;">금회 지급신청액 (3분기)</th>
+                <th colspan="2">지급신청잔액 (4분기)</th>
+            </tr>
+            <tr>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header" style="background-color:#c53030;">보조금</th>
+                <th class="sub-header" style="background-color:#c53030;">자부담</th>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+            </tr>`;
+        } else {
+            headHtml += `
+                <th colspan="2">기지급액 (1-3분기)</th>
+                <th colspan="2" class="highlight-red" style="background-color:#e53e3e;">금회 정산액 (4분기)</th>
+            </tr>
+            <tr>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header">보조금</th>
+                <th class="sub-header">자부담</th>
+                <th class="sub-header" style="background-color:#c53030;">보조금</th>
+                <th class="sub-header" style="background-color:#c53030;">자부담</th>
+            </tr>`;
+        }
+        thead.innerHTML = headHtml;
         tbody.innerHTML = '';
 
-        let grandTotalBudget = 0;
-        let grandTotalSubBudget = 0;
-        let grandTotalSelfBudget = 0;
-
-        let grandQ12Sub = 0, grandQ12Self = 0;
-        let grandQ3Sub = 0, grandQ3Self = 0;
-        let grandQ4Sub = 0, grandQ4Self = 0;
+        let grandBudget = 0, grandSubBudget = 0, grandSelfBudget = 0;
+        let grandPrevSub = 0, grandPrevSelf = 0;
+        let grandCurrSub = 0, grandCurrSelf = 0;
+        let grandRemSub = 0, grandRemSelf = 0;
 
         Object.keys(budgetData).forEach(biz => {
             const totalB = budgetData[biz] || 0;
@@ -1837,85 +1883,120 @@
             const subB = isSelfBiz ? 0 : totalB;
             const selfB = isSelfBiz ? totalB : 0;
 
-            const q12Sub = q12Spent[biz] ? q12Spent[biz].sub : 0;
-            const q12Self = q12Spent[biz] ? q12Spent[biz].self : 0;
+            let prevSub = 0, prevSelf = 0;
+            let currSub = 0, currSelf = 0;
+            let remSub = 0, remSelf = 0;
 
-            const q3Sub = q3Spent[biz] ? q3Spent[biz].sub : 0;
-            const q3Self = q3Spent[biz] ? q3Spent[biz].self : 0;
+            if (selectedQ === 1) {
+                currSub = qSpent[1][biz] ? qSpent[1][biz].sub : 0;
+                currSelf = qSpent[1][biz] ? qSpent[1][biz].self : 0;
+            } else if (selectedQ === 2) {
+                prevSub = qSpent[1][biz] ? qSpent[1][biz].sub : 0;
+                prevSelf = qSpent[1][biz] ? qSpent[1][biz].self : 0;
+                currSub = qSpent[2][biz] ? qSpent[2][biz].sub : 0;
+                currSelf = qSpent[2][biz] ? qSpent[2][biz].self : 0;
+            } else if (selectedQ === 3) {
+                prevSub = (qSpent[1][biz]?.sub || 0) + (qSpent[2][biz]?.sub || 0);
+                prevSelf = (qSpent[1][biz]?.self || 0) + (qSpent[2][biz]?.self || 0);
+                currSub = qSpent[3][biz] ? qSpent[3][biz].sub : 0;
+                currSelf = qSpent[3][biz] ? qSpent[3][biz].self : 0;
+                remSub = Math.max(0, subB - prevSub - currSub);
+                remSelf = Math.max(0, selfB - prevSelf - currSelf);
+            } else {
+                prevSub = (qSpent[1][biz]?.sub || 0) + (qSpent[2][biz]?.sub || 0) + (qSpent[3][biz]?.sub || 0);
+                prevSelf = (qSpent[1][biz]?.self || 0) + (qSpent[2][biz]?.self || 0) + (qSpent[3][biz]?.self || 0);
+                currSub = qSpent[4][biz] ? qSpent[4][biz].sub : 0;
+                currSelf = qSpent[4][biz] ? qSpent[4][biz].self : 0;
+            }
 
-            const q4Sub = Math.max(0, subB - q12Sub - q3Sub);
-            const q4Self = Math.max(0, selfB - q12Self - q3Self);
+            grandBudget += totalB; grandSubBudget += subB; grandSelfBudget += selfB;
+            grandPrevSub += prevSub; grandPrevSelf += prevSelf;
+            grandCurrSub += currSub; grandCurrSelf += currSelf;
+            grandRemSub += remSub; grandRemSelf += remSelf;
 
-            grandTotalBudget += totalB;
-            grandTotalSubBudget += subB;
-            grandTotalSelfBudget += selfB;
-
-            grandQ12Sub += q12Sub; grandQ12Self += q12Self;
-            grandQ3Sub += q3Sub; grandQ3Self += q3Self;
-            grandQ4Sub += q4Sub; grandQ4Self += q4Self;
-
-            tbody.innerHTML += `
+            let rowHtml = `
                 <tr>
                     <td style="font-weight:bold; text-align:left;">${biz}</td>
                     <td class="text-right" style="font-weight:bold;">${totalB.toLocaleString()}</td>
                     <td class="text-right">${subB > 0 ? subB.toLocaleString() : '-'}</td>
                     <td class="text-right">${selfB > 0 ? selfB.toLocaleString() : '-'}</td>
-                    <td class="text-right">${q12Sub > 0 ? q12Sub.toLocaleString() : '-'}</td>
-                    <td class="text-right">${q12Self > 0 ? q12Self.toLocaleString() : '-'}</td>
-                    <td class="text-right highlight-red">${q3Sub > 0 ? q3Sub.toLocaleString() : '-'}</td>
-                    <td class="text-right highlight-red">${q3Self > 0 ? q3Self.toLocaleString() : '-'}</td>
-                    <td class="text-right">${q4Sub > 0 ? q4Sub.toLocaleString() : '-'}</td>
-                    <td class="text-right">${q4Self > 0 ? q4Self.toLocaleString() : '-'}</td>
-                </tr>
             `;
+
+            if (selectedQ > 1) {
+                rowHtml += `<td class="text-right">${prevSub > 0 ? prevSub.toLocaleString() : '-'}</td>
+                            <td class="text-right">${prevSelf > 0 ? prevSelf.toLocaleString() : '-'}</td>`;
+            }
+
+            rowHtml += `<td class="text-right highlight-red">${currSub > 0 ? currSub.toLocaleString() : '-'}</td>
+                        <td class="text-right highlight-red">${currSelf > 0 ? currSelf.toLocaleString() : '-'}</td>`;
+
+            if (selectedQ === 3) {
+                rowHtml += `<td class="text-right">${remSub > 0 ? remSub.toLocaleString() : '-'}</td>
+                            <td class="text-right">${remSelf > 0 ? remSelf.toLocaleString() : '-'}</td>`;
+            }
+
+            rowHtml += `</tr>`;
+            tbody.innerHTML += rowHtml;
         });
 
-        // 상단 비율 및 합계 행
-        const subRate = grandTotalBudget > 0 ? ((grandTotalSubBudget / grandTotalBudget) * 100).toFixed(1) : 0;
-        const selfRate = grandTotalBudget > 0 ? ((grandTotalSelfBudget / grandTotalBudget) * 100).toFixed(1) : 0;
+        // 합계 및 비율 행
+        const subRate = grandBudget > 0 ? ((grandSubBudget / grandBudget) * 100).toFixed(2) : 0;
+        const selfRate = grandBudget > 0 ? ((grandSelfBudget / grandBudget) * 100).toFixed(2) : 0;
 
-        const q12SubRate = grandTotalBudget > 0 ? ((grandQ12Sub / grandTotalBudget) * 100).toFixed(1) : 0;
-        const q12SelfRate = grandTotalBudget > 0 ? ((grandQ12Self / grandTotalBudget) * 100).toFixed(1) : 0;
+        const prevSubRate = grandBudget > 0 ? ((grandPrevSub / grandBudget) * 100).toFixed(2) : 0;
+        const prevSelfRate = grandBudget > 0 ? ((grandPrevSelf / grandBudget) * 100).toFixed(2) : 0;
 
-        const q3SubRate = grandTotalBudget > 0 ? ((grandQ3Sub / grandTotalBudget) * 100).toFixed(1) : 0;
-        const q3SelfRate = grandTotalBudget > 0 ? ((grandQ3Self / grandTotalBudget) * 100).toFixed(1) : 0;
+        const currSubRate = grandBudget > 0 ? ((grandCurrSub / grandBudget) * 100).toFixed(2) : 0;
+        const currSelfRate = grandBudget > 0 ? ((grandCurrSelf / grandBudget) * 100).toFixed(2) : 0;
 
-        const q4SubRate = grandTotalBudget > 0 ? ((grandQ4Sub / grandTotalBudget) * 100).toFixed(1) : 0;
-        const q4SelfRate = grandTotalBudget > 0 ? ((grandQ4Self / grandTotalBudget) * 100).toFixed(1) : 0;
+        const remSubRate = grandBudget > 0 ? ((grandRemSub / grandBudget) * 100).toFixed(2) : 0;
+        const remSelfRate = grandBudget > 0 ? ((grandRemSelf / grandBudget) * 100).toFixed(2) : 0;
 
-        const summaryHeaderRows = `
+        let sumRow1 = `
             <tr style="background-color:#edf2f7; font-weight:bold;">
-                <td rowspan="2" class="text-center" style="font-size:13px;">합계 / 비율</td>
-                <td class="text-right" style="font-size:13px; color:#1a365d;">${grandTotalBudget.toLocaleString()}</td>
-                <td class="text-right" style="color:#2b6cb0;">${grandTotalSubBudget.toLocaleString()}</td>
-                <td class="text-right" style="color:#dd6b20;">${grandTotalSelfBudget.toLocaleString()}</td>
-                <td class="text-right">${grandQ12Sub.toLocaleString()}</td>
-                <td class="text-right">${grandQ12Self.toLocaleString()}</td>
-                <td class="text-right highlight-red" style="font-size:13px;">${grandQ3Sub.toLocaleString()}</td>
-                <td class="text-right highlight-red" style="font-size:13px;">${grandQ3Self.toLocaleString()}</td>
-                <td class="text-right">${grandQ4Sub.toLocaleString()}</td>
-                <td class="text-right">${grandQ4Self.toLocaleString()}</td>
-            </tr>
+                <td rowspan="2" class="text-center" style="font-size:12px;">합계 / 비율</td>
+                <td class="text-right" style="font-size:12px; color:#1a365d;">${grandBudget.toLocaleString()}</td>
+                <td class="text-right" style="color:#2b6cb0;">${grandSubBudget.toLocaleString()}</td>
+                <td class="text-right" style="color:#dd6b20;">${grandSelfBudget.toLocaleString()}</td>
+        `;
+        if (selectedQ > 1) {
+            sumRow1 += `<td class="text-right">${grandPrevSub.toLocaleString()}</td>
+                        <td class="text-right">${grandPrevSelf.toLocaleString()}</td>`;
+        }
+        sumRow1 += `<td class="text-right highlight-red" style="font-size:12px;">${grandCurrSub.toLocaleString()}</td>
+                    <td class="text-right highlight-red" style="font-size:12px;">${grandCurrSelf.toLocaleString()}</td>`;
+        if (selectedQ === 3) {
+            sumRow1 += `<td class="text-right">${grandRemSub.toLocaleString()}</td>
+                        <td class="text-right">${grandRemSelf.toLocaleString()}</td>`;
+        }
+        sumRow1 += `</tr>`;
+
+        let sumRow2 = `
             <tr style="background-color:#e2e8f0; font-weight:bold;">
                 <td class="text-center">100%</td>
                 <td class="text-center" style="color:#2b6cb0;">${subRate}%</td>
                 <td class="text-center" style="color:#dd6b20;">${selfRate}%</td>
-                <td class="text-center">${q12SubRate}%</td>
-                <td class="text-center">${q12SelfRate}%</td>
-                <td class="text-center highlight-red">${q3SubRate}%</td>
-                <td class="text-center highlight-red">${q3SelfRate}%</td>
-                <td class="text-center">${q4SubRate}%</td>
-                <td class="text-center">${q4SelfRate}%</td>
-            </tr>
         `;
+        if (selectedQ > 1) {
+            sumRow2 += `<td class="text-center">${prevSubRate}%</td>
+                        <td class="text-center">${prevSelfRate}%</td>`;
+        }
+        sumRow2 += `<td class="text-center highlight-red">${currSubRate}%</td>
+                    <td class="text-center highlight-red">${currSelfRate}%</td>`;
+        if (selectedQ === 3) {
+            sumRow2 += `<td class="text-center">${remSubRate}%</td>
+                        <td class="text-center">${remSelfRate}%</td>`;
+        }
+        sumRow2 += `</tr>`;
 
-        tbody.innerHTML = summaryHeaderRows + tbody.innerHTML;
+        tbody.innerHTML = sumRow1 + sumRow2 + tbody.innerHTML;
     }
 
     async function exportQuarterlyReportExcel() {
+        const qVal = document.getElementById('report-quarter-select').value;
         const table = document.getElementById('quarterly-report-table');
-        const workbook = XLSX.utils.table_to_book(table, { sheet: "분기별보조금정산보고서" });
-        XLSX.writeFile(workbook, `분기별_보조금_정산보고서_${todayStr}.xlsx`);
+        const workbook = XLSX.utils.table_to_book(table, { sheet: `${qVal}분기보조금정산보고서` });
+        XLSX.writeFile(workbook, `${qVal}분기_보조금_정산보고서_${todayStr}.xlsx`);
     }
 
     /* 2탭: 표 서식(테두리, 열 너비, 간격) 맞춤 엑셀 다운로드 */
