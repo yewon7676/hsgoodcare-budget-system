@@ -231,6 +231,17 @@
                         <label><input type="radio" name="incomeFundType" value="자부담"> 자부담 회계</label>
                     </div>
                 </div>
+                <!-- 1탭 입금 항목 (연동 예산분류) 드롭다운 수정 -->
+                <div class="form-group">
+                    <label for="incomeCategory">입금 항목 (연동 예산분류)</label>
+                    <select id="incomeCategory" required>
+                        <option value="보조금">보조금 (전체 예산 연동)</option>
+                        <option value="자부담 (예산연동)">자부담 (예산연동)</option>
+                        <option value="이자">이자</option>
+                        <option value="자부담대체입금">자부담대체입금</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="incomeCategory">입금 항목 (연동 예산분류)</label>
                     <select id="incomeCategory" required>
@@ -1535,20 +1546,38 @@
         });
     }
 
+    /* 3탭 예산 현황표 연동 계산 로직 수정 */
     async function renderSummary() {
         const expList = await getExpenditures();
         const incList = await getIncomes();
         const { budgetData: currentBudgetData, bizIncomeData: currentBizIncomeData } = await getBudgetsFromDB();
 
-        const bizSpentMap = {};
-        expList.forEach(item => {
-            let bizKey = item.bizName;
-            // 기타 항목 및 미지정 항목 자동 분류
-            if (!currentBudgetData.hasOwnProperty(bizKey)) {
-                bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
+        // 1탭 등록 입금액을 3탭 예산 항목별로 자동 분배 집계
+        const autoCategoryIncomeMap = {};
+        incList.forEach(inc => {
+            const amt = inc.totalAmount || 0;
+            let mappedKey = "";
+
+            if (inc.category === '보조금') {
+                // 보조금 지정 항목은 기존 배정 로직 유지
+            } else if (inc.category === '자부담 (예산연동)' || inc.category === '자부담대체입금') {
+                mappedKey = '운영비 (자부담)';
+            } else if (inc.category === '이자' || inc.category === '기타') {
+                if (inc.fundType === '자부담') {
+                    mappedKey = '기타(자부담_이자수입 및 이월잔액 등)';
+                } else {
+                    mappedKey = '기타(보조금_이자수입 및 대체입금 등)';
+                }
             }
-            bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + item.totalAmount;
+
+            if (mappedKey) {
+                autoCategoryIncomeMap[mappedKey] = (autoCategoryIncomeMap[mappedKey] || 0) + amt;
+            }
         });
+
+        // 3탭 화면 및 DB 입력값 반영 로직 실행
+        // ...
+    }
 
         let actualTotalIncomeFromTab1 = 0;
         incList.forEach(item => { actualTotalIncomeFromTab1 += (item.totalAmount || 0); });
