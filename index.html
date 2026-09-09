@@ -2212,44 +2212,90 @@
         XLSX.writeFile(workbook, `예산대비_집행현황_${todayStr}.xlsx`);
     }
 
-    async function exportCombinedExcel() {
-        const list = await getCombinedList();
-        if (list.length === 0) { alert('다운로드할 통합 내역이 없습니다.'); return; }
+    /* 수정한 7탭 통합장부 엑셀 다운로드 함수 (화면 필터링 결과 반영) */
+async function exportCombinedExcel() {
+    let list = await getCombinedList();
 
-        const exportRows = list.map(item => ({
-            "월": item.month, "일자": item.day, "구분": item.type, "거래처/입금처": item.vendor,
-            "대분류(사업)": item.category, "보탬e구분": item.botamCategory || '-', "세부사업/항목": item.summary,
-            "입금(원)": item.incomeAmount, "출금(원)": item.expenditureAmount, "잔액(원)": item.runningBalance,
-            "결제수단": item.payMethod || '계좌이체', "증빙서류": item.evidence
-        }));
+    // 현재 화면에 설정된 검색 필터 값 가져오기
+    const startDate = document.getElementById('comb-filter-start').value;
+    const endDate = document.getElementById('comb-filter-end').value;
+    const type = document.getElementById('comb-filter-type').value;
+    const fund = document.getElementById('comb-filter-fund').value;
+    const keyword = document.getElementById('comb-filter-keyword').value.toLowerCase().trim();
 
-        const worksheet = XLSX.utils.json_to_sheet(exportRows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "수입세부지출통합장부");
-        XLSX.writeFile(workbook, `수입세부지출_통합장부_${todayStr}.xlsx`);
-    }
-
-    async function updateIncomeSelector() {
-        const list = await getIncomes();
-        const container = document.getElementById('income-checkbox-list');
-        container.innerHTML = '';
-
-        if(list.length === 0) {
-            container.innerHTML = '<div style="color:#718096; font-size:13px;">등록된 입금 내역이 없습니다.</div>';
-            renderSelectedIncomes();
-            return;
-        }
-
-        list.forEach((item, idx) => {
-            container.innerHTML += `
-                <div class="print-list-item">
-                    <input type="checkbox" class="inc-print-chk" id="inc-chk-${item.id}" value="${item.id}" ${idx === 0 ? 'checked' : ''} onchange="renderSelectedIncomes()">
-                    <label for="inc-chk-${item.id}"><strong>[${item.id}]</strong> ${item.date} | ${item.category} | ${item.summary} (${item.totalAmount.toLocaleString()}원)</label>
-                </div>
-            `;
+    // 화면 필터와 동일한 조건 적용
+    if (startDate) list = list.filter(item => item.date >= startDate);
+    if (endDate) list = list.filter(item => item.date <= endDate);
+    if (type) list = list.filter(item => item.type === type);
+    if (fund) list = list.filter(item => item.fundType === fund);
+    if (keyword) {
+        list = list.filter(item => {
+            const summaryMatch = item.summary && item.summary.toLowerCase().includes(keyword);
+            const evidenceMatch = item.evidence && item.evidence.toLowerCase().includes(keyword);
+            const vendorMatch = item.vendor && item.vendor.toLowerCase().includes(keyword);
+            const accountMatch = item.accountItem && item.accountItem.toLowerCase().includes(keyword);
+            const botamMatch = item.botamCategory && item.botamCategory.toLowerCase().includes(keyword);
+            return summaryMatch || evidenceMatch || vendorMatch || accountMatch || botamMatch;
         });
-        renderSelectedIncomes();
     }
+
+    if (list.length === 0) { 
+        alert('현재 검색/필터 조건에 해당하는 통합 내역이 없습니다.'); 
+        return; 
+    }
+
+    // 엑셀 변환 데이터 구성
+    const exportRows = list.map(item => ({
+        "월": item.month, 
+        "일자": item.day, 
+        "구분": item.type, 
+        "거래처/입금처": item.vendor,
+        "대분류(사업)": item.category, 
+        "보탬e구분": item.botamCategory || '-', 
+        "세부사업/항목": item.summary,
+        "입금(원)": item.incomeAmount, 
+        "출금(원)": item.expenditureAmount, 
+        "잔액(원)": item.runningBalance,
+        "결제수단": item.payMethod || '계좌이체', 
+        "증빙서류": item.evidence
+    }));
+
+    // 합계 행 추가
+    let totalInc = 0;
+    let totalExp = 0;
+    list.forEach(item => {
+        totalInc += item.incomeAmount;
+        totalExp += item.expenditureAmount;
+    });
+
+    exportRows.push({
+        "월": "합계",
+        "일자": "",
+        "구분": "",
+        "거래처/입금처": "",
+        "대분류(사업)": "",
+        "보탬e구분": "",
+        "세부사업/항목": `총 ${list.length}건 검색결과`,
+        "입금(원)": totalInc,
+        "출금(원)": totalExp,
+        "잔액(원)": totalInc - totalExp,
+        "결제수단": "",
+        "증빙서류": ""
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    
+    // 컬럼 너비 설정
+    worksheet['!cols'] = [
+        { wch: 6 }, { wch: 6 }, { wch: 8 }, { wch: 18 },
+        { wch: 20 }, { wch: 16 }, { wch: 30 }, { wch: 15 },
+        { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "수입세부지출통합장부");
+    XLSX.writeFile(workbook, `수입세부지출_통합장부_검색결과_${todayStr}.xlsx`);
+}
 
     function selectAllIncomes(status) {
         document.querySelectorAll('.inc-print-chk').forEach(chk => chk.checked = status);
