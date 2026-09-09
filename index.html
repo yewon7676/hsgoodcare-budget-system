@@ -1543,15 +1543,45 @@
         const incList = await getIncomes();
         const { budgetData: currentBudgetData, bizIncomeData: currentBizIncomeData } = await getBudgetsFromDB();
 
+        // DB에서 불러온 예산 데이터 중 띄어쓰기 없는 중복 키 제거 정리
+        if (currentBudgetData.hasOwnProperty("운영비(자부담)")) {
+        delete currentBudgetData["운영비(자부담)"];
+        delete currentBizIncomeData["운영비(자부담)"];
+        }
         const bizSpentMap = {};
         expList.forEach(item => {
             let bizKey = item.bizName;
+            // 띄어쓰기 차이 호환 처리
+            if (bizKey === '운영비(자부담)') bizKey = '운영비 (자부담)';
+            
             if (!currentBudgetData.hasOwnProperty(bizKey)) {
                 bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
             }
             bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + item.totalAmount;
         });
 
+        const autoIncomeMap = { ...currentBizIncomeData };
+        incList.forEach(inc => {
+            const amt = inc.totalAmount || 0;
+            let mappedKey = "";
+
+            if (inc.category === '자부담 (예산연동)' || inc.category === '자부담대체입금') {
+                mappedKey = '운영비 (자부담)';
+            } else if (inc.category === '이자' || inc.category === '기타') {
+                if (inc.fundType === '자부담') {
+                    mappedKey = '기타(자부담_이자수입 및 이월잔액 등)';
+                } else {
+                    mappedKey = '기타(보조금_이자수입 및 대체입금 등)';
+                }
+            }
+
+            if (mappedKey) {
+                autoIncomeMap[mappedKey] = (autoIncomeMap[mappedKey] || 0) + amt;
+            }
+        });
+
+        // 화면 테이블 출력 로직...
+    }
         // 1탭 등록 입금액 중 자동 매핑 항목을 3탭 입금액 객체에 자동 연동
         const autoIncomeMap = { ...currentBizIncomeData };
         incList.forEach(inc => {
