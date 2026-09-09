@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V20 (보안강화)</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V21 (Supabase 예산연동)</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -41,7 +41,6 @@
         .auth-status-bar { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: bold; }
         .user-badge { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; color: #2d3748; }
 
-        /* 로그인 모달 스타일 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .login-box { background: #fff; padding: 30px; border-radius: 8px; width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .login-box h2 { font-size: 18px; color: var(--primary-color); margin-bottom: 20px; text-align: center; }
@@ -193,7 +192,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V20</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V21</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -460,7 +459,7 @@
                     <h3 style="margin-bottom:0;">■ 2026년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
                     <div style="display:flex; gap:8px;">
                         <button class="btn-excel" onclick="exportTab3Excel()">💚 3탭 예산현황 엑셀 다운로드</button>
-                        <button class="btn btn-add-item" onclick="saveBudgetChanges()" style="padding: 8px 16px;">예산 및 실제입금액 저장</button>
+                        <button class="btn btn-add-item" onclick="saveBudgetChanges()" style="padding: 8px 16px;">예산 및 실제입금액 DB 저장</button>
                         <button class="btn btn-secondary" onclick="resetBudgetToDefault()" style="padding: 8px 12px; font-size:13px;">초기 예산 복원</button>
                     </div>
                 </div>
@@ -653,14 +652,30 @@
         "장기요양기관협력 및 종사자 지원 사업": 0
     };
 
-    function getBudgetData() {
-        const saved = localStorage.getItem('budgetData_v9');
-        return saved ? JSON.parse(saved) : { ...defaultBudgetData };
-    }
+    // Supabase DB 연동 예산 로드
+    async function getBudgetsFromDB() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('budgets')
+                .select('*');
 
-    function getBizIncomeData() {
-        const saved = localStorage.getItem('bizIncomeData_v9');
-        return saved ? JSON.parse(saved) : { ...defaultIncomeData };
+            if (error || !data || data.length === 0) {
+                return { budgetData: { ...defaultBudgetData }, bizIncomeData: { ...defaultIncomeData } };
+            }
+
+            const budgetData = {};
+            const bizIncomeData = {};
+
+            data.forEach(item => {
+                budgetData[item.biz_name] = item.budget_amount;
+                bizIncomeData[item.biz_name] = item.income_amount;
+            });
+
+            return { budgetData, bizIncomeData };
+        } catch (e) {
+            console.error('예산 데이터 DB 로드 중 오류 발생:', e);
+            return { budgetData: { ...defaultBudgetData }, bizIncomeData: { ...defaultIncomeData } };
+        }
     }
 
     const accountOptions = [
@@ -864,13 +879,15 @@
     async function exportData() {
         const incomes = await getIncomes();
         const expenditures = await getExpenditures();
+        const { budgetData, bizIncomeData } = await getBudgetsFromDB();
+
         const backupData = {
-            version: "V20",
+            version: "V21",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
-            budgetData: getBudgetData(),
-            bizIncomeData: getBizIncomeData()
+            budgetData: budgetData,
+            bizIncomeData: bizIncomeData
         };
 
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
@@ -909,7 +926,6 @@
         reader.readAsText(file);
     }
 
-    /* 샘플 CSV 다운로드 및 CSV 등록 */
     function downloadIncomeSampleCSV() {
         const csvContent = "\uFEFF입금번호,일자,구분,입금항목,세부적요,금액,입금처,증빙서류\n" +
             ",2026-09-01,보조금,보조금,2026년 3차 보조금 입금,5000000,화성시청,통장입금통지서.pdf\n";
@@ -1488,8 +1504,7 @@
     async function renderSummary() {
         const expList = await getExpenditures();
         const incList = await getIncomes();
-        const currentBudgetData = getBudgetData();
-        const currentBizIncomeData = getBizIncomeData();
+        const { budgetData: currentBudgetData, bizIncomeData: currentBizIncomeData } = await getBudgetsFromDB();
 
         const bizSpentMap = {};
         expList.forEach(item => {
@@ -1612,20 +1627,28 @@
         }
     }
 
+    // 예산 및 실제입금액 Supabase DB에 저장
     async function saveBudgetChanges() {
         const budgetInputs = document.querySelectorAll('.budget-input');
         const incomeInputs = document.querySelectorAll('.income-input');
         
-        const newBudgetData = {};
-        const newBizIncomeData = {};
-
-        budgetInputs.forEach(input => { newBudgetData[input.getAttribute('data-biz')] = parseInt(input.value) || 0; });
-
+        const upsertPayload = [];
         let totalIncomeSum = 0;
-        incomeInputs.forEach(input => {
-            const val = parseInt(input.value) || 0;
-            newBizIncomeData[input.getAttribute('data-biz-inc')] = val;
-            totalIncomeSum += val;
+
+        budgetInputs.forEach(input => {
+            const bizName = input.getAttribute('data-biz');
+            const budgetVal = parseInt(input.value) || 0;
+            const incInput = document.querySelector(`.income-input[data-biz-inc="${bizName}"]`);
+            const incomeVal = parseInt(incInput ? incInput.value : 0) || 0;
+
+            totalIncomeSum += incomeVal;
+
+            upsertPayload.push({
+                biz_name: bizName,
+                budget_amount: budgetVal,
+                income_amount: incomeVal,
+                updated_at: new Date().toISOString()
+            });
         });
 
         const incList = await getIncomes();
@@ -1633,23 +1656,43 @@
         incList.forEach(item => { actualTotalIncomeFromTab1 += item.totalAmount || 0; });
 
         if (totalIncomeSum !== actualTotalIncomeFromTab1) {
-            if(!confirm(`⚠️ 경고: 항목별 입금액 합계(${totalIncomeSum.toLocaleString()}원)가 실제 입금 총액(${actualTotalIncomeFromTab1.toLocaleString()}원)과 일치하지 않습니다.\n그래도 저장하시겠습니까?`)) {
+            if(!confirm(`⚠️ 경고: 항목별 입금액 합계(${totalIncomeSum.toLocaleString()}원)가 실제 입금 총액(${actualTotalIncomeFromTab1.toLocaleString()}원)과 일치하지 않습니다.\n그래도 DB에 저장하시겠습니까?`)) {
                 return;
             }
         }
 
-        localStorage.setItem('budgetData_v9', JSON.stringify(newBudgetData));
-        localStorage.setItem('bizIncomeData_v9', JSON.stringify(newBizIncomeData));
-        alert('예산액 및 항목별 실제 입금액 설정이 저장되었습니다.');
-        await renderSummary();
+        const { error } = await supabaseClient
+            .from('budgets')
+            .upsert(upsertPayload, { onConflict: 'biz_name' });
+
+        if (error) {
+            alert('Supabase DB 예산 저장 실패: ' + error.message);
+        } else {
+            alert('예산액 및 실제 입금액 설정이 Supabase DB에 성공적으로 저장되었습니다.');
+            await renderSummary();
+        }
     }
 
-    function resetBudgetToDefault() {
-        if (confirm('초기 예산 배정액 및 입금 설정으로 원복하시겠습니까?')) {
-            localStorage.removeItem('budgetData_v9');
-            localStorage.removeItem('bizIncomeData_v9');
-            renderSummary();
-            alert('초기 설정으로 복원되었습니다.');
+    // 초기 예산 DB 복원
+    async function resetBudgetToDefault() {
+        if (confirm('초기 예산 배정액 및 입금 설정으로 DB 데이터를 원복하시겠습니까?')) {
+            const defaultPayload = Object.keys(defaultBudgetData).map(biz => ({
+                biz_name: biz,
+                budget_amount: defaultBudgetData[biz],
+                income_amount: defaultIncomeData[biz] || 0,
+                updated_at: new Date().toISOString()
+            }));
+
+            const { error } = await supabaseClient
+                .from('budgets')
+                .upsert(defaultPayload, { onConflict: 'biz_name' });
+
+            if (error) {
+                alert('초기 예산 복원 중 오류 발생: ' + error.message);
+            } else {
+                await renderSummary();
+                alert('초기 예산 설정으로 복원되었습니다.');
+            }
         }
     }
 
@@ -1836,7 +1879,7 @@
     async function renderQuarterlyReport() {
         const selectedQ = parseInt(document.getElementById('report-quarter-select').value) || 3;
         const expList = await getExpenditures();
-        const budgetData = getBudgetData();
+        const { budgetData } = await getBudgetsFromDB();
 
         const qSpent = { 1: {}, 2: {}, 3: {}, 4: {} };
 
@@ -2117,8 +2160,7 @@
 
     async function exportTab3Excel() {
         const expList = await getExpenditures();
-        const budgetData = getBudgetData();
-        const bizIncomeData = getBizIncomeData();
+        const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const bizSpentMap = {};
         expList.forEach(item => { bizSpentMap[item.bizName] = (bizSpentMap[item.bizName] || 0) + item.totalAmount; });
@@ -2415,7 +2457,7 @@
 
     async function renderCharts() {
         const expList = await getExpenditures();
-        const budgetData = getBudgetData();
+        const { budgetData } = await getBudgetsFromDB();
 
         const bizSpentMap = {};
         let subsidySpent = 0;
@@ -2485,6 +2527,9 @@
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'incomes' }, () => {
             renderRecentIncomeTable(); renderSummary(); renderCombinedTable(); renderQuarterlyReport();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => {
+            renderSummary(); renderQuarterlyReport();
         })
         .subscribe();
 
