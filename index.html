@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V22</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V23</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -192,7 +192,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V22</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V23</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -353,6 +353,8 @@
                         <option value="건강증진">건강증진</option>
                         <option value="네트워크">네트워크</option>
                         <option value="장기요양기관협력 및 종사자 지원 사업">장기요양기관협력 및 종사자 지원 사업</option>
+                        <option value="기타(보조금_이자수입 및 대체입금 등)">기타(보조금_이자수입 및 대체입금 등)</option>
+                        <option value="기타(자부담_이자수입 및 이월잔액 등)">기타(자부담_이자수입 및 이월잔액 등)</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -429,6 +431,8 @@
                 <option value="건강증진">건강증진</option>
                 <option value="네트워크">네트워크</option>
                 <option value="장기요양기관협력 및 종사자 지원 사업">장기요양기관협력 및 종사자 지원 사업</option>
+                <option value="기타(보조금_이자수입 및 대체입금 등)">기타(보조금_이자수입 및 대체입금 등)</option>
+                <option value="기타(자부담_이자수입 및 이월잔액 등)">기타(자부담_이자수입 및 이월잔액 등)</option>
             </select>
             <input type="text" id="exp-filter-keyword" placeholder="적요 / 지출처 / 증빙명 검색" oninput="renderRecentTable()" style="width: 220px;">
             <button class="btn-sm btn-secondary" onclick="resetExpFilter()">필터 초기화</button>
@@ -630,18 +634,20 @@
 <script>
     const defaultBudgetData = {
         "인건비": 145000000,
-        "운영비": 15000000,
-        "운영비 (자부담)": 3000000,
+        "운영비": 10000000,
+        "운영비 (자부담)": 5000000,
         "교육사업(역량강화)": 7000000,
         "인식개선": 2500000,
         "권익증진": 2000000,
         "건강증진": 9300000,
         "네트워크": 1200000,
-        "장기요양기관협력 및 종사자 지원 사업": 13000000
+        "장기요양기관협력 및 종사자 지원 사업": 13000000,
+        "기타(보조금_이자수입 및 대체입금 등)": 0,
+        "기타(자부담_이자수입 및 이월잔액 등)": 0
     };
 
     const defaultIncomeData = {
-        "인건비": 95000000,
+        "인건비": 46000000,
         "운영비": 0,
         "운영비 (자부담)": 0,
         "교육사업(역량강화)": 0,
@@ -649,7 +655,9 @@
         "권익증진": 0,
         "건강증진": 0,
         "네트워크": 0,
-        "장기요양기관협력 및 종사자 지원 사업": 0
+        "장기요양기관협력 및 종사자 지원 사업": 0,
+        "기타(보조금_이자수입 및 대체입금 등)": 0,
+        "기타(자부담_이자수입 및 이월잔액 등)": 0
     };
 
     // Supabase DB 연동 예산 로드
@@ -663,8 +671,8 @@
                 return { budgetData: { ...defaultBudgetData }, bizIncomeData: { ...defaultIncomeData } };
             }
 
-            const budgetData = {};
-            const bizIncomeData = {};
+            const budgetData = { ...defaultBudgetData };
+            const bizIncomeData = { ...defaultIncomeData };
 
             data.forEach(item => {
                 budgetData[item.biz_name] = item.budget_amount;
@@ -882,7 +890,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V22",
+            version: "V23",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1534,7 +1542,12 @@
 
         const bizSpentMap = {};
         expList.forEach(item => {
-            bizSpentMap[item.bizName] = (bizSpentMap[item.bizName] || 0) + item.totalAmount;
+            let bizKey = item.bizName;
+            // 기타 항목 및 미지정 항목 자동 분류
+            if (!currentBudgetData.hasOwnProperty(bizKey)) {
+                bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
+            }
+            bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + item.totalAmount;
         });
 
         let actualTotalIncomeFromTab1 = 0;
@@ -1561,7 +1574,7 @@
             const actualBalance = bizIncome - spent;
             const rate = budget > 0 ? ((spent / budget) * 100).toFixed(1) : 0;
 
-            const isSelfFund = biz === '운영비 (자부담)' || biz === '운영비(자부담)';
+            const isSelfFund = biz.includes('자부담');
             const badgeHtml = isSelfFund ? '<span class="badge-self">자부담</span>' : '';
 
             tbody.innerHTML += `
@@ -2001,7 +2014,7 @@
 
         Object.keys(budgetData).forEach(biz => {
             const totalB = budgetData[biz] || 0;
-            const isSelfBiz = biz === '운영비 (자부담)' || biz === '운영비(자부담)';
+            const isSelfBiz = biz.includes('자부담');
             const subB = isSelfBiz ? 0 : totalB;
             const selfB = isSelfBiz ? totalB : 0;
 
@@ -2148,7 +2161,7 @@
 
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
         worksheet['!cols'] = [
-            { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 35 }, { wch: 16 }, { wch: 25 }
+            { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 35 }, { wch: 16 }, { wch: 25 }
         ];
 
         const workbook = XLSX.utils.book_new();
@@ -2189,7 +2202,13 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const bizSpentMap = {};
-        expList.forEach(item => { bizSpentMap[item.bizName] = (bizSpentMap[item.bizName] || 0) + item.totalAmount; });
+        expList.forEach(item => { 
+            let bizKey = item.bizName;
+            if (!budgetData.hasOwnProperty(bizKey)) {
+                bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
+            }
+            bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + item.totalAmount; 
+        });
 
         const exportRows = [];
         Object.keys(budgetData).forEach(biz => {
@@ -2212,90 +2231,81 @@
         XLSX.writeFile(workbook, `예산대비_집행현황_${todayStr}.xlsx`);
     }
 
-    /* 수정한 7탭 통합장부 엑셀 다운로드 함수 (화면 필터링 결과 반영) */
-async function exportCombinedExcel() {
-    let list = await getCombinedList();
+    async function exportCombinedExcel() {
+        let list = await getCombinedList();
 
-    // 현재 화면에 설정된 검색 필터 값 가져오기
-    const startDate = document.getElementById('comb-filter-start').value;
-    const endDate = document.getElementById('comb-filter-end').value;
-    const type = document.getElementById('comb-filter-type').value;
-    const fund = document.getElementById('comb-filter-fund').value;
-    const keyword = document.getElementById('comb-filter-keyword').value.toLowerCase().trim();
+        const startDate = document.getElementById('comb-filter-start').value;
+        const endDate = document.getElementById('comb-filter-end').value;
+        const type = document.getElementById('comb-filter-type').value;
+        const fund = document.getElementById('comb-filter-fund').value;
+        const keyword = document.getElementById('comb-filter-keyword').value.toLowerCase().trim();
 
-    // 화면 필터와 동일한 조건 적용
-    if (startDate) list = list.filter(item => item.date >= startDate);
-    if (endDate) list = list.filter(item => item.date <= endDate);
-    if (type) list = list.filter(item => item.type === type);
-    if (fund) list = list.filter(item => item.fundType === fund);
-    if (keyword) {
-        list = list.filter(item => {
-            const summaryMatch = item.summary && item.summary.toLowerCase().includes(keyword);
-            const evidenceMatch = item.evidence && item.evidence.toLowerCase().includes(keyword);
-            const vendorMatch = item.vendor && item.vendor.toLowerCase().includes(keyword);
-            const accountMatch = item.accountItem && item.accountItem.toLowerCase().includes(keyword);
-            const botamMatch = item.botamCategory && item.botamCategory.toLowerCase().includes(keyword);
-            return summaryMatch || evidenceMatch || vendorMatch || accountMatch || botamMatch;
+        if (startDate) list = list.filter(item => item.date >= startDate);
+        if (endDate) list = list.filter(item => item.date <= endDate);
+        if (type) list = list.filter(item => item.type === type);
+        if (fund) list = list.filter(item => item.fundType === fund);
+        if (keyword) {
+            list = list.filter(item => {
+                const summaryMatch = item.summary && item.summary.toLowerCase().includes(keyword);
+                const evidenceMatch = item.evidence && item.evidence.toLowerCase().includes(keyword);
+                const vendorMatch = item.vendor && item.vendor.toLowerCase().includes(keyword);
+                const accountMatch = item.accountItem && item.accountItem.toLowerCase().includes(keyword);
+                const botamMatch = item.botamCategory && item.botamCategory.toLowerCase().includes(keyword);
+                return summaryMatch || evidenceMatch || vendorMatch || accountMatch || botamMatch;
+            });
+        }
+
+        if (list.length === 0) { alert('검색 조건에 해당하는 통합 내역이 없습니다.'); return; }
+
+        const exportRows = list.map(item => ({
+            "월": item.month, "일자": item.day, "구분": item.type, "거래처/입금처": item.vendor,
+            "대분류(사업)": item.category, "보탬e구분": item.botamCategory || '-', "세부사업/항목": item.summary,
+            "입금(원)": item.incomeAmount, "출금(원)": item.expenditureAmount, "잔액(원)": item.runningBalance,
+            "결제수단": item.payMethod || '계좌이체', "증빙서류": item.evidence
+        }));
+
+        let totalInc = 0; let totalExp = 0;
+        list.forEach(item => { totalInc += item.incomeAmount; totalExp += item.expenditureAmount; });
+
+        exportRows.push({
+            "월": "합계", "일자": "", "구분": "", "거래처/입금처": "", "대분류(사업)": "", "보탬e구분": "",
+            "세부사업/항목": `총 ${list.length}건 검색결과`, "입금(원)": totalInc, "출금(원)": totalExp,
+            "잔액(원)": totalInc - totalExp, "결제수단": "", "증빙서류": ""
         });
+
+        const worksheet = XLSX.utils.json_to_sheet(exportRows);
+        worksheet['!cols'] = [
+            { wch: 6 }, { wch: 6 }, { wch: 8 }, { wch: 18 },
+            { wch: 25 }, { wch: 16 }, { wch: 30 }, { wch: 15 },
+            { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 }
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "수입세부지출통합장부");
+        XLSX.writeFile(workbook, `수입세부지출_통합장부_검색결과_${todayStr}.xlsx`);
     }
 
-    if (list.length === 0) { 
-        alert('현재 검색/필터 조건에 해당하는 통합 내역이 없습니다.'); 
-        return; 
+    async function updateIncomeSelector() {
+        const list = await getIncomes();
+        const container = document.getElementById('income-checkbox-list');
+        container.innerHTML = '';
+
+        if(list.length === 0) {
+            container.innerHTML = '<div style="color:#718096; font-size:13px;">등록된 입금 내역이 없습니다.</div>';
+            renderSelectedIncomes();
+            return;
+        }
+
+        list.forEach((item, idx) => {
+            container.innerHTML += `
+                <div class="print-list-item">
+                    <input type="checkbox" class="inc-print-chk" id="inc-chk-${item.id}" value="${item.id}" ${idx === 0 ? 'checked' : ''} onchange="renderSelectedIncomes()">
+                    <label for="inc-chk-${item.id}"><strong>[${item.id}]</strong> ${item.date} | ${item.category} | ${item.summary} (${item.totalAmount.toLocaleString()}원)</label>
+                </div>
+            `;
+        });
+        renderSelectedIncomes();
     }
-
-    // 엑셀 변환 데이터 구성
-    const exportRows = list.map(item => ({
-        "월": item.month, 
-        "일자": item.day, 
-        "구분": item.type, 
-        "거래처/입금처": item.vendor,
-        "대분류(사업)": item.category, 
-        "보탬e구분": item.botamCategory || '-', 
-        "세부사업/항목": item.summary,
-        "입금(원)": item.incomeAmount, 
-        "출금(원)": item.expenditureAmount, 
-        "잔액(원)": item.runningBalance,
-        "결제수단": item.payMethod || '계좌이체', 
-        "증빙서류": item.evidence
-    }));
-
-    // 합계 행 추가
-    let totalInc = 0;
-    let totalExp = 0;
-    list.forEach(item => {
-        totalInc += item.incomeAmount;
-        totalExp += item.expenditureAmount;
-    });
-
-    exportRows.push({
-        "월": "합계",
-        "일자": "",
-        "구분": "",
-        "거래처/입금처": "",
-        "대분류(사업)": "",
-        "보탬e구분": "",
-        "세부사업/항목": `총 ${list.length}건 검색결과`,
-        "입금(원)": totalInc,
-        "출금(원)": totalExp,
-        "잔액(원)": totalInc - totalExp,
-        "결제수단": "",
-        "증빙서류": ""
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(exportRows);
-    
-    // 컬럼 너비 설정
-    worksheet['!cols'] = [
-        { wch: 6 }, { wch: 6 }, { wch: 8 }, { wch: 18 },
-        { wch: 20 }, { wch: 16 }, { wch: 30 }, { wch: 15 },
-        { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 }
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "수입세부지출통합장부");
-    XLSX.writeFile(workbook, `수입세부지출_통합장부_검색결과_${todayStr}.xlsx`);
-}
 
     function selectAllIncomes(status) {
         document.querySelectorAll('.inc-print-chk').forEach(chk => chk.checked = status);
@@ -2537,7 +2547,11 @@ async function exportCombinedExcel() {
 
         expList.forEach(item => {
             const amt = item.totalAmount || 0;
-            bizSpentMap[item.bizName] = (bizSpentMap[item.bizName] || 0) + amt;
+            let bizKey = item.bizName;
+            if (!budgetData.hasOwnProperty(bizKey)) {
+                bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
+            }
+            bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + amt;
             if(item.fundType === '자부담') { selfSpent += amt; } else { subsidySpent += amt; }
         });
 
@@ -2583,7 +2597,7 @@ async function exportCombinedExcel() {
                     data: spentValues,
                     backgroundColor: [
                         '#3182ce', '#38a169', '#dd6b20', '#805ad5', '#d69e2e',
-                        '#e53e3e', '#319795', '#718096', '#b794f4'
+                        '#e53e3e', '#319795', '#718096', '#b794f4', '#4a5568', '#a0aec0'
                     ]
                 }]
             },
