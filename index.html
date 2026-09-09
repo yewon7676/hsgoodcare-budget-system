@@ -1002,58 +1002,93 @@
         reader.readAsText(file, 'EUC-KR');
     }
 
-    async function importCSVExpenditures(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+/* 수정된 CSV 지출 내역 일괄 등록 함수 */
+async function importCSVExpenditures(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const lines = e.target.result.split('\n');
-            let count = 0;
-            const existingList = await getExpenditures();
-            const existingIds = new Set(existingList.map(item => item.id));
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        // 줄바꿈 문자(\r\n, \n) 정규화 분할
+        const lines = e.target.result.replace(/\r/g, '').split('\n');
+        let count = 0;
+        
+        const existingList = await getExpenditures();
+        const existingIds = new Set(existingList.map(item => item.id));
 
-            for (let idx = 0; idx < lines.length; idx++) {
-                const line = lines[idx];
-                if (idx === 0 || !line.trim()) continue;
-                const cols = line.split(',');
-                if (cols.length >= 6) {
-                    let userProvidedId = cols[0] ? cols[0].trim() : '';
-                    const date = cols[1] ? cols[1].trim() : todayStr;
-                    const fundType = cols[2] ? cols[2].trim() : '보조금';
-                    const bizName = cols[3] ? cols[3].trim() : '운영비';
-                    const summary = cols[4] ? cols[4].trim() : '일괄 등록 지출';
-                    const amount = parseInt(cols[5] ? cols[5].trim() : '0') || 0;
-                    const vendor = cols[6] ? cols[6].trim() : '거래처';
-                    const evidence = cols[7] ? cols[7].trim() : 'CSV일괄등록';
-                    const botamCategory = cols[8] ? cols[8].trim() : '사무관리비';
-                    const payMethod = cols[9] ? cols[9].trim() : '계좌이체';
+        // 동일 결의번호 묶음을 위한 임시 객체
+        const groupedMap = new Map();
 
-                    if (date && amount > 0) {
-                        let finalId = userProvidedId;
-                        if (!finalId || existingIds.has(finalId)) { finalId = await generateResolutionNumber(date); }
-                        existingIds.add(finalId);
+        for (let idx = 0; idx < lines.length; idx++) {
+            const line = lines[idx].trim();
+            if (idx === 0 || !line) continue; // 헤더 및 빈 줄 스킵
 
-                        await saveExpenditureToDB({
+            // CSV 쉼표 분할 (큰따옴표 안의 쉼표 예외 처리)
+            const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
+            const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').trim());
+
+            if (cleanCols.length >= 6) {
+                let userProvidedId = cleanCols[0] || '';
+                const date = cleanCols[1] || todayStr;
+                const fundType = cleanCols[2] || '보조금';
+                const bizName = cleanCols[3] || '운영비';
+                const summary = cleanCols[4] || '일괄 등록 지출';
+                const amount = parseInt(cleanCols[5] ? cleanCols[5].replace(/[^0-9]/g, '') : '0') || 0;
+                const vendor = cleanCols[6] || '거래처';
+                const evidence = cleanCols[7] || 'CSV일괄등록';
+                const botamCategory = cleanCols[8] || '사무관리비';
+                const payMethod = cleanCols[9] || '계좌이체';
+
+                if (date && amount > 0) {
+                    let finalId = userProvidedId;
+                    if (!finalId) {
+                        finalId = await generateResolutionNumber(date);
+                    }
+
+                    // 동일한 결의번호가 존재하면 세부 항목(items)만 추가
+                    if (!groupedMap.has(finalId)) {
+                        groupedMap.set(finalId, {
                             id: finalId,
                             fundType: fundType.includes('자부담') ? '자부담' : '보조금',
                             bizName: bizName,
                             date: date,
                             summary: summary,
                             evidence: evidence,
-                            totalAmount: amount,
-                            items: [{ itemDate: date, accountItem: '사무관리비', botamCategory: botamCategory, payMethod: payMethod, vendor: vendor, detailSummary: summary, amount: amount }]
-                        }, false);
-                        count++;
+                            totalAmount: 0,
+                            items: []
+                        });
                     }
+
+                    const targetGroup = groupedMap.get(finalId);
+                    targetGroup.items.push({
+                        itemDate: date,
+                        accountItem: '사무관리비',
+                        botamCategory: botamCategory,
+                        payMethod: payMethod,
+                        vendor: vendor,
+                        detailSummary: summary,
+                        amount: amount
+                    });
+                    targetGroup.totalAmount += amount;
                 }
             }
-            alert(`${count}건의 지출 결의 내역이 일괄 등록되었습니다.`);
-            await renderRecentTable();
-        };
-        reader.readAsText(file, 'EUC-KR');
-    }
+        }
 
+        // DB에 일괄 저장 수행
+        for (const [id, expData] of groupedMap.entries()) {
+            const isEdit = existingIds.has(id);
+            const success = await saveExpenditureToDB(expData, isEdit);
+            if (success) count++;
+        }
+
+        alert(`총 ${count}건의 지출 결의서가 정상적으로 일괄 등록/갱신되었습니다.`);
+        await renderRecentTable();
+        await renderSummary();
+    };
+
+    // 한글 인코딩 안전 로딩 (UTF-8)
+    reader.readAsText(file, 'UTF-8');
+}
     function addIncomeItemRow(accountItem = '', botamCategory = '교부금_1분기', vendor = '', detailSummary = '', amount = '') {
         const tbody = document.getElementById('income-items-tbody');
         const tr = document.createElement('tr');
