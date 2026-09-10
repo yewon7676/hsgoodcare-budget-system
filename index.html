@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V26</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -211,7 +211,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V26</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -491,12 +491,30 @@
         </table>
     </div>
 
-    <!-- 3 탭: 예산 대비 집행 현황 및 예산 수정 -->
+    <!-- 3 탭: 예산 대비 집행 현황 및 예산 수정 (월별 필터 추가) -->
     <div id="summary-tab" class="tab-content">
         <div class="summary-container">
             <div class="summary-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="margin-bottom:0;">■ 2026년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin-bottom:0;">■ 2026년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
+                        <!-- 월별 조회 필터 셀렉트 박스 -->
+                        <select id="summary-month-select" onchange="renderSummary()" style="font-size:14px; font-weight:bold; padding:5px 10px; border:2px solid var(--primary-color); border-radius:4px; color:var(--primary-color); background:#fff;">
+                            <option value="all">전체 (연간 누적)</option>
+                            <option value="1">1월 집행 현황</option>
+                            <option value="2">2월 집행 현황</option>
+                            <option value="3">3월 집행 현황</option>
+                            <option value="4">4월 집행 현황</option>
+                            <option value="5">5월 집행 현황</option>
+                            <option value="6">6월 집행 현황</option>
+                            <option value="7">7월 집행 현황</option>
+                            <option value="8">8월 집행 현황</option>
+                            <option value="9">9월 집행 현황</option>
+                            <option value="10">10월 집행 현황</option>
+                            <option value="11">11월 집행 현황</option>
+                            <option value="12">12월 집행 현황</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:8px;">
                         <button class="btn-excel" onclick="exportTab3Excel()">💚 3탭 예산현황 엑셀 다운로드</button>
                         <button class="btn btn-add-item" onclick="saveBudgetChanges()" style="padding: 8px 16px;">예산 및 실제입금액 DB 저장</button>
@@ -514,7 +532,7 @@
                             <th>사업구분(예산항목)</th>
                             <th class="text-right" style="width: 130px;">총 예산액</th>
                             <th class="text-right" style="width: 130px; color:#237032; background:#e6f4ea;">실제 입금예산<br>(수정가능)</th>
-                            <th class="text-right">누적 집행액</th>
+                            <th class="text-right">선택월/누적 집행액</th>
                             <th class="text-right">예산 잔액</th>
                             <th class="text-right" style="color:#2b6cb0; background:#ebf8ff;">실제 남은 잔액<br>(입금 잔액)</th>
                             <th style="width: 14%;">집행률</th>
@@ -926,7 +944,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V26",
+            version: "V27",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1597,7 +1615,7 @@
         if (amountDisplay) amountDisplay.innerText = `${totalFilteredAmount.toLocaleString()}원`;
     }
 
-    /* 3탭 예산 현황표 및 자동 매핑 집계 함수 */
+    /* 3탭 예산 현황표 및 월별 집계 함수 */
     async function renderSummary() {
         const expList = await getExpenditures();
         const incList = await getIncomes();
@@ -1608,15 +1626,31 @@
             delete currentBizIncomeData["운영비(자부담)"];
         }
 
+        // 선택된 월 확인 ('all' 또는 '1'~'12')
+        const monthSelectElem = document.getElementById('summary-month-select');
+        const selectedMonth = monthSelectElem ? monthSelectElem.value : 'all';
+
         const bizSpentMap = {};
         
         expList.forEach(item => {
+            // 결의서 단위 월 체크 (세부 항목 없는 경우 대응)
+            if (selectedMonth !== 'all') {
+                const expMonth = new Date(item.date).getMonth() + 1;
+                if (expMonth !== parseInt(selectedMonth)) return;
+            }
+
             const itemAmount = item.totalAmount || 0;
             
             if (item.items && item.items.length > 0) {
                 item.items.forEach(it => {
+                    // 세부 항목 단위 월 체크
+                    if (selectedMonth !== 'all') {
+                        const itDate = it.itemDate || item.date;
+                        const itMonth = new Date(itDate).getMonth() + 1;
+                        if (itMonth !== parseInt(selectedMonth)) return;
+                    }
+
                     let bizKey = item.bizName;
-                    
                     if ((!bizKey || bizKey === '사업비') && it.botamCategory) {
                         bizKey = it.botamCategory;
                     }
@@ -2317,8 +2351,15 @@
         const expList = await getExpenditures();
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
+        const selectedMonth = document.getElementById('summary-month-select') ? document.getElementById('summary-month-select').value : 'all';
+
         const bizSpentMap = {};
         expList.forEach(item => { 
+            if (selectedMonth !== 'all') {
+                const expMonth = new Date(item.date).getMonth() + 1;
+                if (expMonth !== parseInt(selectedMonth)) return;
+            }
+
             let bizKey = item.bizName;
             if (!budgetData.hasOwnProperty(bizKey)) {
                 bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
@@ -2337,14 +2378,15 @@
 
             exportRows.push({
                 "사업구분(예산항목)": biz, "총 예산액(원)": budget, "실제 입금예산(원)": bizInc,
-                "누적 집행액(원)": spent, "예산 잔액(원)": budgetBal, "실제 남은 잔액(원)": actualBal, "집행률": rate
+                "집행액(원)": spent, "예산 잔액(원)": budgetBal, "실제 남은 잔액(원)": actualBal, "집행률": rate
             });
         });
 
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "예산대비집행현황");
-        XLSX.writeFile(workbook, `예산대비_집행현황_${todayStr}.xlsx`);
+        const monthLabel = selectedMonth === 'all' ? '연간누적' : `${selectedMonth}월`;
+        XLSX.writeFile(workbook, `예산대비_집행현황_${monthLabel}_${todayStr}.xlsx`);
     }
 
     async function exportCombinedExcel() {
