@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.1</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.2</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -211,10 +211,11 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.1</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.2</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
+                <label>회계연도 <input id="fiscal-year" type="number" min="2020" max="2100" value="2026" onchange="changeFiscalYear()" style="width:100px"></label>
                 <button class="btn-sm btn-income" onclick="exportData()" style="padding:6px 12px; font-size:13px;">📥 백업 파일 다운로드</button>
                 <label for="import-file-input" class="btn-sm btn-secondary" style="padding:6px 12px; font-size:13px; margin:0; cursor:pointer;">📤 백업 파일 복원</label>
                 <input type="file" id="import-file-input" accept=".json" onchange="importData(event)" style="display:none;">
@@ -497,7 +498,7 @@
             <div class="summary-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin-bottom:0;">■ 2026년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
+                        <h3 style="margin-bottom:0;">■ <span class="year-label">2026</span>년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
                         <!-- 월별 조회 필터 셀렉트 박스 -->
                         <select id="summary-month-select" onchange="renderSummary()" style="font-size:14px; font-weight:bold; padding:5px 10px; border:2px solid var(--primary-color); border-radius:4px; color:var(--primary-color); background:#fff;">
                             <option value="all">전체 (연간 누적)</option>
@@ -580,7 +581,7 @@
 
     <!-- 6 탭: 통계 및 보고서 차트 -->
     <div id="dashboard-tab" class="tab-content">
-        <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--primary-color);">■ 2026년도 수입·지출 및 예산집행 시각화 보고서</h3>
+        <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--primary-color);">■ <span class="year-label">2026</span>년도 수입·지출 및 예산집행 시각화 보고서</h3>
         
         <div class="chart-grid">
             <div class="chart-card full-width">
@@ -715,29 +716,43 @@
     };
 
     // Supabase DB 연동 예산 로드
-    async function getBudgetsFromDB() {
-        try {
-            const { data, error } = await supabaseClient
-                .from('budgets')
-                .select('*');
-
-            if (error || !data || data.length === 0) {
-                return { budgetData: { ...defaultBudgetData }, bizIncomeData: { ...defaultIncomeData } };
-            }
-
-            const budgetData = { ...defaultBudgetData };
-            const bizIncomeData = { ...defaultIncomeData };
-
-            data.forEach(item => {
-                budgetData[item.biz_name] = item.budget_amount;
-                bizIncomeData[item.biz_name] = item.income_amount;
-            });
-
-            return { budgetData, bizIncomeData };
-        } catch (e) {
-            console.error('예산 데이터 DB 로드 중 오류 발생:', e);
-            return { budgetData: { ...defaultBudgetData }, bizIncomeData: { ...defaultIncomeData } };
+    let activeFiscalYear = 2026;
+    function belongsToYear(date, year=activeFiscalYear) {
+        return String(date || '').slice(0,4) === String(year);
+    }
+    async function readAllRows(table) {
+        const all=[];
+        for(let start=0;;start+=500){
+            const {data,error}=await supabaseClient.from(table).select('*').order(table==='budgets_by_year'?'fiscal_year':'id').order(table==='budgets_by_year'?'biz_name':'id').range(start,start+499);
+            if(error)throw new Error(table+' 조회 실패: '+error.message);
+            all.push(...(data||[]));if(!data||data.length<500)return all;
         }
+    }
+    async function getBudgetsFromDB() {
+        const {data,error}=await supabaseClient.from('budgets_by_year').select('*').eq('fiscal_year',activeFiscalYear);
+        if(error)throw new Error('연도별 예산 조회 실패. V27.2 SQL 설정을 확인하세요. '+error.message);
+        const base=Object.fromEntries(Object.keys(defaultBudgetData).map(k=>[k,0]));
+        const budgetData={...base},bizIncomeData={...base};
+        (data||[]).forEach(row=>{budgetData[row.biz_name]=Number(row.budget_amount)||0;bizIncomeData[row.biz_name]=Number(row.income_amount)||0;});
+        return {budgetData,bizIncomeData};
+    }
+    async function changeFiscalYear(){
+        const next=Number(document.getElementById('fiscal-year').value);
+        if(!Number.isInteger(next)||next<2020||next>2100){document.getElementById('fiscal-year').value=activeFiscalYear;return alert('2020~2100 사이 연도를 입력하세요.');}
+        if(!confirm('조회 연도를 변경합니다. 저장하지 않은 입력은 초기화됩니다. 계속하시겠습니까?')){document.getElementById('fiscal-year').value=activeFiscalYear;return;}
+        activeFiscalYear=next;
+        document.querySelectorAll('.year-label').forEach(el=>el.textContent=next);
+        try{await initSystem();await renderCombinedTable();await renderQuarterlyReport();await renderCharts();await updateSelector();await updateIncomeSelector();}
+        catch(e){alert(e.message);}
+    }
+    function yearExpenses(list) {
+        return list.flatMap(exp=>{
+            if(Array.isArray(exp.items)&&exp.items.length){
+                const items=exp.items.filter(it=>belongsToYear(it.itemDate||exp.date));
+                return items.length?[{...exp,items,totalAmount:items.reduce((s,it)=>s+(Number(it.amount)||0),0)}]:[];
+            }
+            return belongsToYear(exp.date)?[exp]:[];
+        });
     }
 
     const accountOptions = [
@@ -811,7 +826,8 @@
             errorBox.innerText = '로그인 실패: ' + error.message;
             errorBox.style.display = 'block';
         } else {
-            checkAuthAndInit();
+            window.addEventListener('unhandledrejection',event=>{event.preventDefault();alert('작업을 완료하지 못했습니다. '+(event.reason?.message||event.reason));});
+    checkAuthAndInit();
         }
     }
 
@@ -837,12 +853,7 @@
     /* DB API 연동 함수 */
     async function getIncomes() {
         try {
-            const { data, error } = await supabaseClient
-                .from('incomes')
-                .select('*')
-                .order('date', { ascending: false });
-
-            if (error) { console.error('입금 내역 로드 오류:', error.message); return []; }
+            const data = await readAllRows('incomes');
             return data.map(item => ({
                 id: item.id,
                 fundType: item.fund_type,
@@ -855,7 +866,7 @@
             }));
         } catch (e) {
             console.error('getIncomes 예외:', e);
-            return [];
+            throw e;
         }
     }
 
@@ -888,12 +899,7 @@
 
     async function getExpenditures() {
         try {
-            const { data, error } = await supabaseClient
-                .from('expenditures')
-                .select('*')
-                .order('date', { ascending: false });
-
-            if (error) { console.error('지출 내역 로드 실패:', error.message); return []; }
+            const data = await readAllRows('expenditures');
             return data.map(item => ({
                 id: item.id,
                 fundType: item.fund_type,
@@ -906,7 +912,7 @@
             }));
         } catch (e) {
             console.error('getExpenditures 예외:', e);
-            return [];
+            throw e;
         }
     }
 
@@ -939,53 +945,49 @@
 
     /* 백업 및 복원 */
     async function exportData() {
-        const incomes = await getIncomes();
-        const expenditures = await getExpenditures();
-        const { budgetData, bizIncomeData } = await getBudgetsFromDB();
-
-        const backupData = {
-            version: "V27.1",
-            exportDate: new Date().toISOString(),
-            incomes: incomes,
-            expenditures: expenditures,
-            budgetData: budgetData,
-            bizIncomeData: bizIncomeData
-        };
-
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        const dateTag = new Date().toISOString().slice(0,10).replace(/-/g, "");
-        
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `hswelfare_backup_${dateTag}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
+        try{
+            const [incomes,expenditures,budgets]=await Promise.all([readAllRows('incomes'),readAllRows('expenditures'),readAllRows('budgets_by_year')]);
+            const blob=new Blob([JSON.stringify({version:'V27.2',format:'raw-all-years',exportDate:new Date().toISOString(),incomes,expenditures,budgets},null,2)],{type:'application/json'});
+            const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='회계전체백업_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        }catch(e){alert('백업을 생성하지 못했습니다. '+e.message);}
     }
-
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (data.incomes && data.expenditures) {
-                    if (confirm('백업 파일을 Supabase DB로 복원하시겠습니까?')) {
-                        for (const inc of data.incomes) { await saveIncomeToDB(inc, false); }
-                        for (const exp of data.expenditures) { await saveExpenditureToDB(exp, false); }
-                        alert('데이터 복원이 완료되었습니다.');
-                        location.reload();
-                    }
-                } else {
-                    alert('유효하지 않은 백업 파일입니다.');
-                }
-            } catch (err) {
-                alert('파일 처리 오류: ' + err.message);
+    function restoreRecord(table,row,raw){
+        if(table==='budgets_by_year'){
+            const year=Number(row.fiscal_year);
+            if(!Number.isInteger(year)||year<2020||year>2100||!row.biz_name)throw new Error('예산 연도·항목 오류');
+            for(const k of ['budget_amount','income_amount'])if(!Number.isFinite(Number(row[k])))throw new Error('예산 금액 오류');
+            return {fiscal_year:year,biz_name:row.biz_name,budget_amount:Number(row.budget_amount),income_amount:Number(row.income_amount),updated_at:row.updated_at||new Date().toISOString()};
+        }
+        if(!row.id||!/^\d{4}-\d{2}-\d{2}$/.test(row.date||'')||!Number.isFinite(Number(raw?row.total_amount:row.totalAmount)))throw new Error('거래번호·날짜·금액 오류');
+        const r={id:row.id,date:row.date,fund_type:raw?row.fund_type:row.fundType,summary:row.summary||'',evidence:row.evidence||'',total_amount:Number(raw?row.total_amount:row.totalAmount),items:row.items||[]};
+        if(!Array.isArray(r.items))throw new Error('세부내역 형식 오류');
+        if(table==='incomes')r.category=row.category;else r.biz_name=raw?row.biz_name:row.bizName;
+        return r;
+    }
+    async function importData(event) {
+        const file=event.target.files[0];if(!file)return;
+        try{
+            const data=JSON.parse(await file.text()),raw=data.format==='raw-all-years';
+            if(!Array.isArray(data.incomes)||!Array.isArray(data.expenditures))throw new Error('수입·지출 배열이 없는 파일입니다.');
+            let budgets=data.budgets;
+            if(!raw){
+                if(!data.budgetData||!data.bizIncomeData)throw new Error('기존 백업의 예산정보가 없습니다.');
+                const year=Number(prompt('기존 백업 예산의 회계연도를 입력하세요. 거래는 각 거래일자를 유지합니다.','2026'));
+                if(!Number.isInteger(year)||year<2020||year>2100)throw new Error('유효한 예산 연도가 필요합니다.');
+                budgets=Object.entries(data.budgetData).map(([biz_name,budget_amount])=>({fiscal_year:year,biz_name,budget_amount,income_amount:data.bizIncomeData[biz_name]||0}));
             }
-        };
-        reader.readAsText(file);
+            if(!Array.isArray(budgets))throw new Error('연도별 예산 배열이 없습니다.');
+            const groups=[['incomes',data.incomes],['expenditures',data.expenditures],['budgets_by_year',budgets]].map(([table,rows])=>[table,rows.map(row=>restoreRecord(table,row,raw))]);
+            if(!confirm('수입 '+data.incomes.length+'건, 지출 '+data.expenditures.length+'건, 예산 '+budgets.length+'건을 복원합니다. 동일 번호·동일 연도 예산은 건너뛰며 기존 자료를 덮어쓰지 않습니다. 계속하시겠습니까?'))return;
+            let success=0,skipped=0,failed=0;const errors=[];
+            for(const [table,rows] of groups)for(const row of rows){
+                try{const {data:saved,error}=await supabaseClient.from(table).upsert(row,{onConflict:table==='budgets_by_year'?'fiscal_year,biz_name':'id',ignoreDuplicates:true}).select();
+                    if(error)throw error;if(saved?.length)success++;else skipped++;
+                }catch(e){failed++;errors.push(table+' / '+(row.id||row.fiscal_year+' '+row.biz_name)+': '+e.message);}
+            }
+            alert('복원 처리 결과: 성공 '+success+'건 / 기존 중복 '+skipped+'건 / 실패 '+failed+'건'+(errors.length?'\n'+errors.slice(0,10).join('\n'):''));
+            await initSystem();
+        }catch(e){alert('복원 오류: '+e.message);}finally{event.target.value='';}
     }
 
     function downloadIncomeSampleCSV() {
@@ -1194,6 +1196,7 @@
 
     async function handleIncomeSubmit(e) {
         e.preventDefault();
+        if(!belongsToYear(document.getElementById('incomeDate').value))return alert('입력일자의 연도가 선택한 회계연도와 다릅니다. 연도 또는 일자를 확인해 주세요.');
         const editId = document.getElementById('income-edit-id').value;
         const date = document.getElementById('incomeDate').value;
         const fundType = document.querySelector('input[name="incomeFundType"]:checked').value;
@@ -1286,7 +1289,7 @@
     }
 
     async function renderRecentIncomeTable() {
-        let list = await getIncomes();
+        let list = (await getIncomes()).filter(x=>belongsToYear(x.date));
 
         const startDate = document.getElementById('inc-filter-start').value;
         const endDate = document.getElementById('inc-filter-end').value;
@@ -1442,6 +1445,7 @@
 
     async function handleFormSubmit(e) {
         e.preventDefault();
+        if(!belongsToYear(document.getElementById('expDate').value))return alert('입력일자의 연도가 선택한 회계연도와 다릅니다. 연도 또는 일자를 확인해 주세요.');
         const editId = document.getElementById('edit-id').value;
         const date = document.getElementById('expDate').value;
         const fundType = document.querySelector('input[name="fundType"]:checked').value;
@@ -1545,7 +1549,7 @@
     }
 
     async function renderRecentTable() {
-        let list = await getExpenditures();
+        let list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
 
         const startDate = document.getElementById('exp-filter-start').value;
         const endDate = document.getElementById('exp-filter-end').value;
@@ -1617,8 +1621,8 @@
 
     /* 3탭 예산 현황표 및 월별 집계 함수 */
     async function renderSummary() {
-        const expList = await getExpenditures();
-        const incList = await getIncomes();
+        const expList = yearExpenses(await getExpenditures());
+        const incList = (await getIncomes()).filter(x=>belongsToYear(x.date));
         const { budgetData: currentBudgetData, bizIncomeData: currentBizIncomeData } = await getBudgetsFromDB();
 
         if (currentBudgetData.hasOwnProperty("운영비(자부담)")) {
@@ -1805,7 +1809,7 @@
 
         document.getElementById('sum-total-income').innerText = `${currentIncomeSum.toLocaleString()}원`;
 
-        const incList = await getIncomes();
+        const incList = (await getIncomes()).filter(x=>belongsToYear(x.date));
         let actualTotalIncomeFromTab1 = 0;
         incList.forEach(item => { actualTotalIncomeFromTab1 += item.totalAmount || 0; });
 
@@ -1833,6 +1837,7 @@
             totalIncomeSum += incomeVal;
 
             upsertPayload.push({
+                fiscal_year: activeFiscalYear,
                 biz_name: bizName,
                 budget_amount: budgetVal,
                 income_amount: incomeVal,
@@ -1840,7 +1845,7 @@
             });
         });
 
-        const incList = await getIncomes();
+        const incList = (await getIncomes()).filter(x=>belongsToYear(x.date));
         let actualTotalIncomeFromTab1 = 0;
         incList.forEach(item => { actualTotalIncomeFromTab1 += item.totalAmount || 0; });
 
@@ -1851,8 +1856,8 @@
         }
 
         const { error } = await supabaseClient
-            .from('budgets')
-            .upsert(upsertPayload, { onConflict: 'biz_name' });
+            .from('budgets_by_year')
+            .upsert(upsertPayload, { onConflict: 'fiscal_year,biz_name' });
 
         if (error) {
             alert('Supabase DB 예산 저장 실패: ' + error.message);
@@ -1863,17 +1868,18 @@
     }
 
     async function resetBudgetToDefault() {
-        if (confirm('초기 예산 배정액 및 입금 설정으로 DB 데이터를 원복하시겠습니까?')) {
+        if (confirm('선택 연도의 예산을 초기화하시겠습니까? 2026년은 기본 예산액, 다른 연도는 0원으로 설정되며 입금 배분액은 0원이 됩니다.')) {
             const defaultPayload = Object.keys(defaultBudgetData).map(biz => ({
+                fiscal_year: activeFiscalYear,
                 biz_name: biz,
-                budget_amount: defaultBudgetData[biz],
-                income_amount: defaultIncomeData[biz] || 0,
+                budget_amount: activeFiscalYear===2026?defaultBudgetData[biz]:0,
+                income_amount: 0,
                 updated_at: new Date().toISOString()
             }));
 
             const { error } = await supabaseClient
-                .from('budgets')
-                .upsert(defaultPayload, { onConflict: 'biz_name' });
+                .from('budgets_by_year')
+                .upsert(defaultPayload, { onConflict: 'fiscal_year,biz_name' });
 
             if (error) {
                 alert('초기 예산 복원 중 오류 발생: ' + error.message);
@@ -1885,8 +1891,8 @@
     }
 
     async function getCombinedList() {
-        const incList = await getIncomes();
-        const expList = await getExpenditures();
+        const incList = (await getIncomes()).filter(x=>belongsToYear(x.date));
+        const expList = yearExpenses(await getExpenditures());
 
         const combined = [];
 
@@ -2071,7 +2077,7 @@
 
     async function renderQuarterlyReport() {
         const selectedQ = parseInt(document.getElementById('report-quarter-select').value) || 3;
-        const expList = await getExpenditures();
+        const expList = yearExpenses(await getExpenditures());
         const { budgetData } = await getBudgetsFromDB();
 
         const qSpent = { 1: {}, 2: {}, 3: {}, 4: {} };
@@ -2106,7 +2112,7 @@
             <tr>
                 <th rowspan="2" style="width: 16%;">구분</th>
                 <th rowspan="2" style="width: 12%;">총 예산</th>
-                <th colspan="2" style="width: 18%;">2026년 예산</th>
+                <th colspan="2" style="width: 18%;">${activeFiscalYear}년 예산</th>
         `;
 
         if (selectedQ === 1) {
@@ -2292,7 +2298,7 @@
     }
 
     async function exportTab2ExcelFormatted() {
-        const list = await getExpenditures();
+        const list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
         if (list.length === 0) { alert('다운로드할 지출 내역이 없습니다.'); return; }
 
         const exportRows = [];
@@ -2328,7 +2334,7 @@
     }
 
     async function exportTab1Excel() {
-        const list = await getIncomes();
+        const list = (await getIncomes()).filter(x=>belongsToYear(x.date));
         if (list.length === 0) { alert('다운로드할 입금 내역이 없습니다.'); return; }
 
         const exportRows = [];
@@ -2356,7 +2362,7 @@
     }
 
     async function exportTab3Excel() {
-        const expList = await getExpenditures();
+        const expList = yearExpenses(await getExpenditures());
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const selectedMonth = document.getElementById('summary-month-select') ? document.getElementById('summary-month-select').value : 'all';
@@ -2452,7 +2458,7 @@
     }
 
     async function updateIncomeSelector() {
-        const list = await getIncomes();
+        const list = (await getIncomes()).filter(x=>belongsToYear(x.date));
         const container = document.getElementById('income-checkbox-list');
         container.innerHTML = '';
 
@@ -2488,7 +2494,7 @@
             return;
         }
 
-        const allIncomes = await getIncomes();
+        const allIncomes = (await getIncomes()).filter(x=>belongsToYear(x.date));
         checkedBoxes.forEach(chk => {
             const item = allIncomes.find(el => el.id === chk.value);
             if (item) {
@@ -2576,7 +2582,7 @@
     }
 
     async function updateSelector() {
-        const list = await getExpenditures();
+        const list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
         const container = document.getElementById('exp-checkbox-list');
         container.innerHTML = '';
 
@@ -2612,7 +2618,7 @@
             return;
         }
 
-        const allExp = await getExpenditures();
+        const allExp = (await getExpenditures()).filter(x=>belongsToYear(x.date));
         checkedBoxes.forEach(chk => {
             const item = allExp.find(el => el.id === chk.value);
             if (item) {
@@ -2704,7 +2710,7 @@
     let chartBizPieInst = null;
 
     async function renderCharts() {
-        const expList = await getExpenditures();
+        const expList = yearExpenses(await getExpenditures());
         const { budgetData } = await getBudgetsFromDB();
 
         const bizSpentMap = {};
@@ -2780,7 +2786,7 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'incomes' }, () => {
             renderRecentIncomeTable(); renderSummary(); renderCombinedTable(); renderQuarterlyReport();
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets_by_year' }, () => {
             renderSummary(); renderQuarterlyReport();
         })
         .subscribe();
@@ -2796,6 +2802,7 @@
         await renderSummary();
     }
 
+    window.addEventListener('unhandledrejection',event=>{event.preventDefault();alert('작업을 완료하지 못했습니다. '+(event.reason?.message||event.reason));});
     checkAuthAndInit();
 </script>
 
