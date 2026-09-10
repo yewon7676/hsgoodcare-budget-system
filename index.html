@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V25</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V26</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -101,11 +101,30 @@
         .summary-card { background: #edf2f7; padding: 20px; border-radius: 6px; border-left: 5px solid var(--primary-color); }
         .summary-card h3 { margin-bottom: 15px; font-size: 16px; }
 
+        /* 테이블 기본 스타일 설정 */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-        th, td { border: 1px solid var(--border-color); padding: 7px; text-align: left; }
+        th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
         th { background-color: #f7fafc; font-weight: bold; text-align: center; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
+
+        /* 등록된 지출 내역 목록 테이블 줄바꿈 방지 스타일 적용 */
+        #recent-list-table {
+            table-layout: auto;
+            width: 100%;
+        }
+        #recent-list-table th, 
+        #recent-list-table td {
+            vertical-align: middle;
+        }
+        #recent-list-table th:nth-child(1), #recent-list-table td:nth-child(1), /* 결의 번호 */
+        #recent-list-table th:nth-child(2), #recent-list-table td:nth-child(2), /* 일자 */
+        #recent-list-table th:nth-child(3), #recent-list-table td:nth-child(3), /* 구분 */
+        #recent-list-table th:nth-child(6), #recent-list-table td:nth-child(6), /* 총 금액 */
+        #recent-list-table th:nth-child(8), #recent-list-table td:nth-child(8)  /* 관리 */
+        {
+            white-space: nowrap;
+        }
 
         .progress-bar-bg { background-color: #cbd5e0; border-radius: 4px; height: 10px; width: 100%; overflow: hidden; }
         .progress-bar-fill { background-color: #3182ce; height: 100%; width: 0%; transition: width 0.3s; }
@@ -192,7 +211,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V25</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V26</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -423,7 +442,6 @@
             <input type="date" id="exp-filter-start" onchange="renderRecentTable()"> ~
             <input type="date" id="exp-filter-end" onchange="renderRecentTable()">
             
-            <!-- 회계구분 선택 필터 추가 -->
             <select id="exp-filter-fund" onchange="renderRecentTable()">
                 <option value="">-- 전체 회계구분 --</option>
                 <option value="보조금">보조금 회계</option>
@@ -448,17 +466,18 @@
             <button class="btn-sm btn-secondary" onclick="resetExpFilter()">필터 초기화</button>
         </div>
 
+        <!-- 2탭 지출 내역 테이블 (줄바꿈 방지 스타일 반영) -->
         <table id="recent-list-table">
             <thead>
                 <tr>
-                    <th>결의 번호</th>
-                    <th>일자</th>
-                    <th>구분</th>
-                    <th>사업구분</th>
-                    <th>세부항목 / 주요지출처</th>
-                    <th class="text-right">총 금액</th>
-                    <th>증빙서류</th>
-                    <th class="text-center">관리</th>
+                    <th style="width: 10%;">결의 번호</th>
+                    <th style="width: 9%;">일자</th>
+                    <th style="width: 7%;">구분</th>
+                    <th style="width: 15%;">사업구분</th>
+                    <th style="width: 28%;">세부항목 / 주요지출처</th>
+                    <th style="width: 11%;" class="text-right">총 금액</th>
+                    <th style="width: 12%;">증빙서류</th>
+                    <th style="width: 8%;" class="text-center">관리</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -907,7 +926,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V25",
+            version: "V26",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1501,7 +1520,7 @@
     function resetExpFilter() {
         document.getElementById('exp-filter-start').value = '';
         document.getElementById('exp-filter-end').value = '';
-        document.getElementById('exp-filter-fund').value = ''; // 회계구분 필터 초기화
+        document.getElementById('exp-filter-fund').value = '';
         document.getElementById('exp-filter-biz').value = '';
         document.getElementById('exp-filter-keyword').value = '';
         renderRecentTable();
@@ -1512,14 +1531,13 @@
 
         const startDate = document.getElementById('exp-filter-start').value;
         const endDate = document.getElementById('exp-filter-end').value;
-        const fundTypeFilter = document.getElementById('exp-filter-fund').value; // 회계구분 필터 값
+        const fundTypeFilter = document.getElementById('exp-filter-fund').value;
         const bizNameFilter = document.getElementById('exp-filter-biz').value;
         const keyword = document.getElementById('exp-filter-keyword').value.toLowerCase().trim();
 
         if (startDate) list = list.filter(item => item.date >= startDate);
         if (endDate) list = list.filter(item => item.date <= endDate);
         
-        // 회계구분 필터링 (보조금 / 자부담)
         if (fundTypeFilter) {
             list = list.filter(item => item.fundType === fundTypeFilter);
         }
@@ -1557,14 +1575,14 @@
             const vendors = item.items ? [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ') : '-';
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="font-weight:bold; color:var(--primary-color);">${item.id}</td>
-                <td>${item.date}</td>
-                <td><span style="background:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:12px;">${item.fundType}</span></td>
+                <td style="font-weight:bold; color:var(--primary-color); white-space:nowrap;">${item.id}</td>
+                <td style="white-space:nowrap;">${item.date}</td>
+                <td style="white-space:nowrap;"><span style="background:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:12px;">${item.fundType}</span></td>
                 <td>${item.bizName}</td>
                 <td>${item.items ? item.items.length : 0}개 항목 (${vendors || '-'})</td>
-                <td class="text-right" style="font-weight:bold;">${item.totalAmount.toLocaleString()}원</td>
+                <td class="text-right" style="font-weight:bold; white-space:nowrap;">${item.totalAmount.toLocaleString()}원</td>
                 <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
-                <td class="text-center">
+                <td class="text-center" style="white-space:nowrap;">
                     <button class="btn-sm btn-edit" onclick="editExpenditure('${item.id}')">수정</button>
                     <button class="btn-sm btn-delete" onclick="deleteExpenditure('${item.id}')">삭제</button>
                 </td>
@@ -1572,7 +1590,6 @@
             tbody.appendChild(tr);
         });
 
-        // 하단 tfoot 건수 및 총 금액 실시간 업데이트
         const countDisplay = document.getElementById('exp-total-count-display');
         const amountDisplay = document.getElementById('exp-total-amount-display');
 
