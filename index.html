@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.1</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -211,7 +211,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.1</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -944,7 +944,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V27",
+            version: "V27.1",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1633,9 +1633,9 @@
         const bizSpentMap = {};
         
         expList.forEach(item => {
-            // 결의서 단위 월 체크 (세부 항목 없는 경우 대응)
-            if (selectedMonth !== 'all') {
-                const expMonth = new Date(item.date).getMonth() + 1;
+            // 세부 내역이 없는 건만 결의일로 월을 판정함.
+            if ((!Array.isArray(item.items) || item.items.length === 0) && selectedMonth !== 'all') {
+                const expMonth = Number(String(item.date || '').slice(5, 7));
                 if (expMonth !== parseInt(selectedMonth)) return;
             }
 
@@ -1646,7 +1646,7 @@
                     // 세부 항목 단위 월 체크
                     if (selectedMonth !== 'all') {
                         const itDate = it.itemDate || item.date;
-                        const itMonth = new Date(itDate).getMonth() + 1;
+                        const itMonth = Number(String(itDate || '').slice(5, 7));
                         if (itMonth !== parseInt(selectedMonth)) return;
                     }
 
@@ -1674,9 +1674,16 @@
             }
         });
 
+        // 자동 입금항목은 원장에서 다시 집계. 저장된 합계에 재가산하지 않음.
+        const autoIncomeKeys = [
+            '운영비 (자부담)',
+            '기타(자부담_이자수입 및 이월잔액 등)',
+            '기타(보조금_이자수입 및 대체입금 등)'
+        ];
         const autoIncomeMap = { ...currentBizIncomeData };
+        autoIncomeKeys.forEach(key => { autoIncomeMap[key] = 0; });
         incList.forEach(inc => {
-            const amt = inc.totalAmount || 0;
+            const amt = Number(inc.totalAmount) || 0;
             let mappedKey = "";
 
             if (inc.category === '자부담 (예산연동)' || inc.category === '자부담대체입금') {
@@ -1728,7 +1735,8 @@
                         <input type="number" class="budget-input" data-biz="${biz}" value="${budget}" oninput="recalculateSummaryTotals()"> 원
                     </td>
                     <td class="text-right" style="background:#f6fbf7;">
-                        <input type="number" class="income-input" data-biz-inc="${biz}" value="${bizIncome}" oninput="recalculateSummaryTotals()"> 원
+                        <input type="number" class="income-input" data-biz-inc="${biz}" value="${bizIncome}" ${autoIncomeKeys.includes(biz) ? 'readonly title="1탭 입금내역에서 자동 집계됩니다."' : 'oninput="recalculateSummaryTotals()"'}> 원
+                        ${autoIncomeKeys.includes(biz) ? '<small style="display:block;color:#237032">입금원장 자동집계 · 수정은 1탭에서</small>' : ''}
                     </td>
                     <td class="text-right" style="color:#c53030; font-weight:bold;">${spent.toLocaleString()}원</td>
                     <td class="text-right" style="color:#718096;">${budgetBalance.toLocaleString()}원</td>
