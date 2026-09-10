@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V24</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V25</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -192,7 +192,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V24</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V25</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -422,6 +422,14 @@
             <strong>🔍 검색 및 필터:</strong>
             <input type="date" id="exp-filter-start" onchange="renderRecentTable()"> ~
             <input type="date" id="exp-filter-end" onchange="renderRecentTable()">
+            
+            <!-- 회계구분 선택 필터 추가 -->
+            <select id="exp-filter-fund" onchange="renderRecentTable()">
+                <option value="">-- 전체 회계구분 --</option>
+                <option value="보조금">보조금 회계</option>
+                <option value="자부담">자부담 회계</option>
+            </select>
+
             <select id="exp-filter-biz" onchange="renderRecentTable()">
                 <option value="">-- 전체 사업구분 --</option>
                 <option value="인건비">인건비</option>
@@ -454,7 +462,6 @@
                 </tr>
             </thead>
             <tbody></tbody>
-            <!-- 하단 지출 합계 영역 (건수 및 총 금액 표시) -->
             <tfoot>
                 <tr style="background-color: #edf2f7; font-weight: bold;">
                     <td colspan="5" class="text-center" id="exp-total-count-display">조회된 지출 내역: 0건</td>
@@ -900,7 +907,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V24",
+            version: "V25",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1494,6 +1501,7 @@
     function resetExpFilter() {
         document.getElementById('exp-filter-start').value = '';
         document.getElementById('exp-filter-end').value = '';
+        document.getElementById('exp-filter-fund').value = ''; // 회계구분 필터 초기화
         document.getElementById('exp-filter-biz').value = '';
         document.getElementById('exp-filter-keyword').value = '';
         renderRecentTable();
@@ -1504,12 +1512,18 @@
 
         const startDate = document.getElementById('exp-filter-start').value;
         const endDate = document.getElementById('exp-filter-end').value;
+        const fundTypeFilter = document.getElementById('exp-filter-fund').value; // 회계구분 필터 값
         const bizNameFilter = document.getElementById('exp-filter-biz').value;
         const keyword = document.getElementById('exp-filter-keyword').value.toLowerCase().trim();
 
         if (startDate) list = list.filter(item => item.date >= startDate);
         if (endDate) list = list.filter(item => item.date <= endDate);
         
+        // 회계구분 필터링 (보조금 / 자부담)
+        if (fundTypeFilter) {
+            list = list.filter(item => item.fundType === fundTypeFilter);
+        }
+
         if (bizNameFilter) {
             list = list.filter(item => {
                 let match = item.bizName === bizNameFilter;
@@ -1558,7 +1572,7 @@
             tbody.appendChild(tr);
         });
 
-        // 하단 tfoot 건수 및 총 금액 업데이트
+        // 하단 tfoot 건수 및 총 금액 실시간 업데이트
         const countDisplay = document.getElementById('exp-total-count-display');
         const amountDisplay = document.getElementById('exp-total-amount-display');
 
