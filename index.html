@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V23</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V24</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -192,7 +192,7 @@
 
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V23</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V24</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -454,6 +454,14 @@
                 </tr>
             </thead>
             <tbody></tbody>
+            <!-- 하단 지출 합계 영역 (건수 및 총 금액 표시) -->
+            <tfoot>
+                <tr style="background-color: #edf2f7; font-weight: bold;">
+                    <td colspan="5" class="text-center" id="exp-total-count-display">조회된 지출 내역: 0건</td>
+                    <td class="text-right" id="exp-total-amount-display" style="color: var(--primary-color); font-size: 14px;">0원</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 
@@ -892,7 +900,7 @@
         const { budgetData, bizIncomeData } = await getBudgetsFromDB();
 
         const backupData = {
-            version: "V23",
+            version: "V24",
             exportDate: new Date().toISOString(),
             incomes: incomes,
             expenditures: expenditures,
@@ -1527,7 +1535,11 @@
         const tbody = document.querySelector('#recent-list-table tbody');
         tbody.innerHTML = '';
 
+        let totalFilteredAmount = 0;
+
         list.forEach(item => {
+            totalFilteredAmount += (item.totalAmount || 0);
+
             const vendors = item.items ? [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ') : '-';
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -1545,6 +1557,13 @@
             `;
             tbody.appendChild(tr);
         });
+
+        // 하단 tfoot 건수 및 총 금액 업데이트
+        const countDisplay = document.getElementById('exp-total-count-display');
+        const amountDisplay = document.getElementById('exp-total-amount-display');
+
+        if (countDisplay) countDisplay.innerText = `조회된 지출 내역 합계 (${list.length}건)`;
+        if (amountDisplay) amountDisplay.innerText = `${totalFilteredAmount.toLocaleString()}원`;
     }
 
     /* 3탭 예산 현황표 및 자동 매핑 집계 함수 */
@@ -1553,7 +1572,6 @@
         const incList = await getIncomes();
         const { budgetData: currentBudgetData, bizIncomeData: currentBizIncomeData } = await getBudgetsFromDB();
 
-        // DB에서 불러온 예산 데이터 중 띄어쓰기 없는 중복 키 제거 정리
         if (currentBudgetData.hasOwnProperty("운영비(자부담)")) {
             delete currentBudgetData["운영비(자부담)"];
             delete currentBizIncomeData["운영비(자부담)"];
@@ -1568,7 +1586,6 @@
                 item.items.forEach(it => {
                     let bizKey = item.bizName;
                     
-                    // 대분류가 '사업비'이거나 없으면 세부항목의 보탬e구분을 우선 참조하여 스마트 매핑
                     if ((!bizKey || bizKey === '사업비') && it.botamCategory) {
                         bizKey = it.botamCategory;
                     }
@@ -1592,7 +1609,6 @@
             }
         });
 
-        // 1탭 등록 입금액 자동 연동
         const autoIncomeMap = { ...currentBizIncomeData };
         incList.forEach(inc => {
             const amt = inc.totalAmount || 0;
@@ -1729,7 +1745,6 @@
         }
     }
 
-    // 예산 및 실제입금액 Supabase DB에 저장
     async function saveBudgetChanges() {
         const budgetInputs = document.querySelectorAll('.budget-input');
         
@@ -1774,7 +1789,6 @@
         }
     }
 
-    // 초기 예산 DB 복원
     async function resetBudgetToDefault() {
         if (confirm('초기 예산 배정액 및 입금 설정으로 DB 데이터를 원복하시겠습니까?')) {
             const defaultPayload = Object.keys(defaultBudgetData).map(biz => ({
