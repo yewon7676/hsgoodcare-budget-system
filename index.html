@@ -117,11 +117,11 @@
         #recent-list-table td {
             vertical-align: middle;
         }
-        #recent-list-table th:nth-child(1), #recent-list-table td:nth-child(1), /* 결의 번호 */
-        #recent-list-table th:nth-child(2), #recent-list-table td:nth-child(2), /* 일자 */
-        #recent-list-table th:nth-child(3), #recent-list-table td:nth-child(3), /* 구분 */
-        #recent-list-table th:nth-child(6), #recent-list-table td:nth-child(6), /* 총 금액 */
-        #recent-list-table th:nth-child(8), #recent-list-table td:nth-child(8)  /* 관리 */
+        #recent-list-table th:nth-child(1), #recent-list-table td:nth-child(1),
+        #recent-list-table th:nth-child(2), #recent-list-table td:nth-child(2),
+        #recent-list-table th:nth-child(3), #recent-list-table td:nth-child(3),
+        #recent-list-table th:nth-child(6), #recent-list-table td:nth-child(6),
+        #recent-list-table th:nth-child(8), #recent-list-table td:nth-child(8)
         {
             white-space: nowrap;
         }
@@ -136,6 +136,7 @@
         .error-alert-box { display: none; background-color: #fed7d7; border: 1px solid #f5c6cb; color: #9b2c2c; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; font-size: 14px; }
 
         .badge-self { background-color: #dd6b20; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px; }
+        .badge-deposit { background-color: #805ad5; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px; }
         .badge-inc { background-color: #38a169; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
         .badge-exp { background-color: #e53e3e; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
 
@@ -249,6 +250,7 @@
                     <div class="radio-group">
                         <label><input type="radio" name="incomeFundType" value="보조금" checked> 보조금 회계</label>
                         <label><input type="radio" name="incomeFundType" value="자부담"> 자부담 회계</label>
+                        <label><input type="radio" name="incomeFundType" value="예치금"> 예치금 회계</label>
                     </div>
                 </div>
                 <div class="form-group">
@@ -256,6 +258,8 @@
                     <select id="incomeCategory" required>
                         <option value="보조금">보조금 (전체 예산 연동)</option>
                         <option value="자부담 (예산연동)">자부담 (예산연동)</option>
+                        <option value="사회보험 및 소득세.주민세 예치통장">사회보험 및 소득세.주민세 예치통장</option>
+                        <option value="퇴직적립금 예치통장">퇴직적립금 예치통장</option>
                         <option value="이자">이자</option>
                         <option value="자부담대체입금">자부담대체입금</option>
                         <option value="기타">기타</option>
@@ -326,6 +330,8 @@
                 <option value="">-- 전체 입금항목 --</option>
                 <option value="보조금">보조금</option>
                 <option value="자부담 (예산연동)">자부담 (예산연동)</option>
+                <option value="사회보험 및 소득세.주민세 예치통장">사회보험 및 소득세.주민세 예치통장</option>
+                <option value="퇴직적립금 예치통장">퇴직적립금 예치통장</option>
                 <option value="이자">이자</option>
                 <option value="자부담대체입금">자부담대체입금</option>
                 <option value="기타">기타</option>
@@ -361,6 +367,7 @@
                     <div class="radio-group">
                         <label><input type="radio" name="fundType" value="보조금" checked> 보조금 회계</label>
                         <label><input type="radio" name="fundType" value="자부담"> 자부담 회계</label>
+                        <label><input type="radio" name="fundType" value="예치금"> 예치금 회계</label>
                     </div>
                 </div>
                 <div class="form-group">
@@ -375,6 +382,8 @@
                         <option value="건강증진">건강증진</option>
                         <option value="네트워크">네트워크</option>
                         <option value="장기요양기관협력 및 종사자 지원 사업">장기요양기관협력 및 종사자 지원 사업</option>
+                        <option value="사회보험 및 소득세.주민세 예치통장">사회보험 및 소득세.주민세 예치통장</option>
+                        <option value="퇴직적립금 예치통장">퇴직적립금 예치통장</option>
                         <option value="기타(보조금_이자수입 및 대체입금 등)">기타(보조금_이자수입 및 대체입금 등)</option>
                         <option value="기타(자부담_이자수입 및 이월잔액 등)">기타(자부담_이자수입 및 이월잔액 등)</option>
                     </select>
@@ -447,6 +456,7 @@
                 <option value="">-- 전체 회계구분 --</option>
                 <option value="보조금">보조금 회계</option>
                 <option value="자부담">자부담 회계</option>
+                <option value="예치금">예치금 회계</option>
             </select>
 
             <select id="exp-filter-biz" onchange="renderRecentTable()">
@@ -460,6 +470,8 @@
                 <option value="건강증진">건강증진</option>
                 <option value="네트워크">네트워크</option>
                 <option value="장기요양기관협력 및 종사자 지원 사업">장기요양기관협력 및 종사자 지원 사업</option>
+                <option value="사회보험 및 소득세.주민세 예치통장">사회보험 및 소득세.주민세 예치통장</option>
+                <option value="퇴직적립금 예치통장">퇴직적립금 예치통장</option>
                 <option value="기타(보조금_이자수입 및 대체입금 등)">기타(보조금_이자수입 및 대체입금 등)</option>
                 <option value="기타(자부담_이자수입 및 이월잔액 등)">기타(자부담_이자수입 및 이월잔액 등)</option>
             </select>
@@ -467,7 +479,7 @@
             <button class="btn-sm btn-secondary" onclick="resetExpFilter()">필터 초기화</button>
         </div>
 
-        <!-- 2탭 지출 내역 테이블 (줄바꿈 방지 스타일 반영) -->
+        <!-- 2탭 지출 내역 테이블 -->
         <table id="recent-list-table">
             <thead>
                 <tr>
@@ -492,14 +504,13 @@
         </table>
     </div>
 
-    <!-- 3 탭: 예산 대비 집행 현황 및 예산 수정 (월별 필터 추가) -->
+    <!-- 3 탭: 예산 대비 집행 현황 및 예산 수정 -->
     <div id="summary-tab" class="tab-content">
         <div class="summary-container">
             <div class="summary-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <h3 style="margin-bottom:0;">■ <span class="year-label">2026</span>년 예산 대비 집행 및 항목별 실제 입금액 관리 현황</h3>
-                        <!-- 월별 조회 필터 셀렉트 박스 -->
                         <select id="summary-month-select" onchange="renderSummary()" style="font-size:14px; font-weight:bold; padding:5px 10px; border:2px solid var(--primary-color); border-radius:4px; color:var(--primary-color); background:#fff;">
                             <option value="all">전체 (연간 누적)</option>
                             <option value="1">1월 집행 현황</option>
@@ -591,7 +602,7 @@
                 </div>
             </div>
             <div class="chart-card">
-                <h4>🍰 회계 구분별 지출 비중 (보조금 vs 자부담)</h4>
+                <h4>🍰 회계 구분별 지출 비중 (보조금 vs 자부담 vs 예치금)</h4>
                 <div class="chart-container">
                     <canvas id="chart-fund-pie"></canvas>
                 </div>
@@ -625,6 +636,7 @@
                 <option value="">-- 전체 회계구분 --</option>
                 <option value="보조금">보조금 회계</option>
                 <option value="자부담">자부담 회계</option>
+                <option value="예치금">예치금 회계</option>
             </select>
             <input type="text" id="comb-filter-keyword" placeholder="적요 / 거래처 / 계정과목 검색" oninput="renderCombinedTable()" style="width: 220px;">
             <button class="btn-sm btn-secondary" onclick="resetCombFilter()">필터 초기화</button>
@@ -697,6 +709,8 @@
         "건강증진": 9300000,
         "네트워크": 1200000,
         "장기요양기관협력 및 종사자 지원 사업": 13000000,
+        "사회보험 및 소득세.주민세 예치통장": 0,
+        "퇴직적립금 예치통장": 0,
         "기타(보조금_이자수입 및 대체입금 등)": 0,
         "기타(자부담_이자수입 및 이월잔액 등)": 0
     };
@@ -711,6 +725,8 @@
         "건강증진": 0,
         "네트워크": 0,
         "장기요양기관협력 및 종사자 지원 사업": 0,
+        "사회보험 및 소득세.주민세 예치통장": 0,
+        "퇴직적립금 예치통장": 0,
         "기타(보조금_이자수입 및 대체입금 등)": 0,
         "기타(자부담_이자수입 및 이월잔액 등)": 0
     };
@@ -755,20 +771,22 @@
         });
     }
 
+    /* 목/세목 계정과목 배열에 '소득세.주민세' 추가 */
     const accountOptions = [
-        "급여 및 제수당", "사회보험", "퇴직급여", "사무관리비", "사무용품비", 
+        "급여 및 제수당", "사회보험", "소득세.주민세", "퇴직급여", "사무관리비", "사무용품비", 
         "공공운영비", "여비교통비", "급량비", "운영수당", "강사비", 
         "사업운영비", "행사 및 홍보비", "사업비기타", "기타"
     ];
 
+    /* 보탬e 구분 옵션에 예치통장 구분 추가 */
     const botamOptions = [
         "교육사업(역량강화)", "권익증진", "인식개선", "건강증진", "네트워크", 
         "협력사업", "공공운영비", "보수", "사무관리비", "사무용품비", 
-        "사회보험 부담", "퇴직적립금 부담", "기타"
+        "사회보험 부담", "소득세.주민세", "퇴직적립금 부담", "사회보험 및 소득세.주민세 예치통장", "퇴직적립금 예치통장", "기타"
     ];
 
     const paymentMethodOptions = ["계좌이체", "카드", "자동이체", "기타"];
-    const incomeAccountOptions = ["보조금수입", "자부담수입", "이자수입", "잡수입/기타"];
+    const incomeAccountOptions = ["보조금수입", "자부담수입", "사회보험 및 소득세.주민세 예치통장", "퇴직적립금 예치통장", "이자수입", "잡수입/기타"];
 
     function convertToKoreanNumber(num) {
         if (!num || isNaN(num) || num === 0) return "금영원정";
@@ -827,7 +845,7 @@
             errorBox.style.display = 'block';
         } else {
             window.addEventListener('unhandledrejection',event=>{event.preventDefault();alert('작업을 완료하지 못했습니다. '+(event.reason?.message||event.reason));});
-    checkAuthAndInit();
+            checkAuthAndInit();
         }
     }
 
@@ -1046,9 +1064,13 @@
                         if (!finalId || existingIds.has(finalId)) { finalId = await generateIncomeNumber(date); }
                         existingIds.add(finalId);
 
+                        let parsedFundType = '보조금';
+                        if (fundType.includes('자부담')) parsedFundType = '자부담';
+                        else if (fundType.includes('예치금')) parsedFundType = '예치금';
+
                         await saveIncomeToDB({
                             id: finalId,
-                            fundType: fundType.includes('자부담') ? '자부담' : '보조금',
+                            fundType: parsedFundType,
                             category: category,
                             date: date,
                             summary: summary,
@@ -1102,10 +1124,14 @@
                         let finalId = userProvidedId;
                         if (!finalId) { finalId = await generateResolutionNumber(date); }
 
+                        let parsedFundType = '보조금';
+                        if (fundType.includes('자부담')) parsedFundType = '자부담';
+                        else if (fundType.includes('예치금')) parsedFundType = '예치금';
+
                         if (!groupedMap.has(finalId)) {
                             groupedMap.set(finalId, {
                                 id: finalId,
-                                fundType: fundType.includes('자부담') ? '자부담' : '보조금',
+                                fundType: parsedFundType,
                                 bizName: bizName,
                                 date: date,
                                 summary: summary,
@@ -1243,7 +1269,8 @@
         const item = list.find(el => el.id === id);
         if (item) {
             document.getElementById('income-edit-id').value = item.id;
-            document.querySelector(`input[name="incomeFundType"][value="${item.fundType}"]`).checked = true;
+            const targetRadio = document.querySelector(`input[name="incomeFundType"][value="${item.fundType}"]`);
+            if (targetRadio) targetRadio.checked = true;
             document.getElementById('incomeCategory').value = item.category;
             document.getElementById('incomeDate').value = item.date;
             document.getElementById('incomeSummary').value = item.summary;
@@ -1316,11 +1343,16 @@
 
         list.forEach(item => {
             const vendors = item.items ? [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ') : '-';
+            
+            let bg = '#e6f4ea', color = '#137333';
+            if (item.fundType === '자부담') { bg = '#fffaf0'; color = '#dd6b20'; }
+            else if (item.fundType === '예치금') { bg = '#faf5ff'; color = '#805ad5'; }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color:var(--income-color);">${item.id}</td>
                 <td>${item.date}</td>
-                <td><span style="background:#e6f4ea; color:#137333; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
+                <td><span style="background:${bg}; color:${color}; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
                 <td>${item.category}</td>
                 <td>${item.items ? item.items.length : 0}개 항목 (${vendors || '-'})</td>
                 <td class="text-right" style="font-weight:bold; color:#276749;">${item.totalAmount.toLocaleString()}원</td>
@@ -1502,7 +1534,8 @@
         const item = list.find(el => el.id === id);
         if (item) {
             document.getElementById('edit-id').value = item.id;
-            document.querySelector(`input[name="fundType"][value="${item.fundType}"]`).checked = true;
+            const targetRadio = document.querySelector(`input[name="fundType"][value="${item.fundType}"]`);
+            if (targetRadio) targetRadio.checked = true;
             document.getElementById('bizName').value = item.bizName;
             document.getElementById('expDate').value = item.date;
             document.getElementById('summary').value = item.summary;
@@ -1630,14 +1663,12 @@
             delete currentBizIncomeData["운영비(자부담)"];
         }
 
-        // 선택된 월 확인 ('all' 또는 '1'~'12')
         const monthSelectElem = document.getElementById('summary-month-select');
         const selectedMonth = monthSelectElem ? monthSelectElem.value : 'all';
 
         const bizSpentMap = {};
         
         expList.forEach(item => {
-            // 세부 내역이 없는 건만 결의일로 월을 판정함.
             if ((!Array.isArray(item.items) || item.items.length === 0) && selectedMonth !== 'all') {
                 const expMonth = Number(String(item.date || '').slice(5, 7));
                 if (expMonth !== parseInt(selectedMonth)) return;
@@ -1647,7 +1678,6 @@
             
             if (item.items && item.items.length > 0) {
                 item.items.forEach(it => {
-                    // 세부 항목 단위 월 체크
                     if (selectedMonth !== 'all') {
                         const itDate = it.itemDate || item.date;
                         const itMonth = Number(String(itDate || '').slice(5, 7));
@@ -1678,9 +1708,10 @@
             }
         });
 
-        // 자동 입금항목은 원장에서 다시 집계. 저장된 합계에 재가산하지 않음.
         const autoIncomeKeys = [
             '운영비 (자부담)',
+            '사회보험 및 소득세.주민세 예치통장',
+            '퇴직적립금 예치통장',
             '기타(자부담_이자수입 및 이월잔액 등)',
             '기타(보조금_이자수입 및 대체입금 등)'
         ];
@@ -1692,6 +1723,10 @@
 
             if (inc.category === '자부담 (예산연동)' || inc.category === '자부담대체입금') {
                 mappedKey = '운영비 (자부담)';
+            } else if (inc.category === '사회보험 및 소득세.주민세 예치통장') {
+                mappedKey = '사회보험 및 소득세.주민세 예치통장';
+            } else if (inc.category === '퇴직적립금 예치통장') {
+                mappedKey = '퇴직적립금 예치통장';
             } else if (inc.category === '이자' || inc.category === '기타') {
                 if (inc.fundType === '자부담') {
                     mappedKey = '기타(자부담_이자수입 및 이월잔액 등)';
@@ -1730,10 +1765,13 @@
             const rate = budget > 0 ? ((spent / budget) * 100).toFixed(1) : 0;
 
             const isSelfFund = biz.includes('자부담');
-            const badgeHtml = isSelfFund ? '<span class="badge-self">자부담</span>' : '';
+            const isDeposit = biz.includes('예치통장');
+            let badgeHtml = '';
+            if (isSelfFund) badgeHtml = '<span class="badge-self">자부담</span>';
+            else if (isDeposit) badgeHtml = '<span class="badge-deposit">예치금</span>';
 
             tbody.innerHTML += `
-                <tr ${isSelfFund ? 'style="background-color: #fffaf0;"' : ''}>
+                <tr ${isSelfFund ? 'style="background-color: #fffaf0;"' : (isDeposit ? 'style="background-color: #faf5ff;"' : '')}>
                     <td style="font-weight:bold;">${biz} ${badgeHtml}</td>
                     <td class="text-right">
                         <input type="number" class="budget-input" data-biz="${biz}" value="${budget}" oninput="recalculateSummaryTotals()"> 원
@@ -2716,6 +2754,7 @@
         const bizSpentMap = {};
         let subsidySpent = 0;
         let selfSpent = 0;
+        let depositSpent = 0;
 
         expList.forEach(item => {
             const amt = item.totalAmount || 0;
@@ -2724,7 +2763,9 @@
                 bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
             }
             bizSpentMap[bizKey] = (bizSpentMap[bizKey] || 0) + amt;
-            if(item.fundType === '자부담') { selfSpent += amt; } else { subsidySpent += amt; }
+            if(item.fundType === '자부담') { selfSpent += amt; }
+            else if(item.fundType === '예치금') { depositSpent += amt; }
+            else { subsidySpent += amt; }
         });
 
         const bizLabels = Object.keys(budgetData);
@@ -2753,8 +2794,8 @@
         chartFundPieInst = new Chart(ctxFundPie, {
             type: 'doughnut',
             data: {
-                labels: ['보조금 회계', '자부담 회계'],
-                datasets: [{ data: [subsidySpent, selfSpent], backgroundColor: ['#2b6cb0', '#dd6b20'] }]
+                labels: ['보조금 회계', '자부담 회계', '예치금 회계'],
+                datasets: [{ data: [subsidySpent, selfSpent, depositSpent], backgroundColor: ['#2b6cb0', '#dd6b20', '#805ad5'] }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
@@ -2769,7 +2810,7 @@
                     data: spentValues,
                     backgroundColor: [
                         '#3182ce', '#38a169', '#dd6b20', '#805ad5', '#d69e2e',
-                        '#e53e3e', '#319795', '#718096', '#b794f4', '#4a5568', '#a0aec0'
+                        '#e53e3e', '#319795', '#718096', '#b794f4', '#4a5568', '#a0aec0', '#63b3ed', '#f6ad55'
                     ]
                 }]
             },
