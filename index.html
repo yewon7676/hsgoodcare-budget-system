@@ -1618,7 +1618,16 @@
                 return summaryMatch || evidenceMatch || itemMatch;
             });
         }
-
+        // =========================================================================
+        // [신규 추가] 지출일자(date) 기준 오름차순 정렬 (날짜가 같으면 결의번호 순 정렬)
+        // =========================================================================
+        list.sort((a, b) => {
+            if (a.date !== b.date) {
+                return a.date.localeCompare(b.date); // 예: 2026-01-23 -> 2026-02-06 순
+            }
+            return a.id.localeCompare(b.id, undefined, { numeric: true });
+        });
+        // =========================================================================
         const tbody = document.querySelector('#recent-list-table tbody');
         tbody.innerHTML = '';
 
