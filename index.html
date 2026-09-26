@@ -3012,7 +3012,7 @@
         document.getElementById('transfer-evidence').value = '';
     }
 
-    // 자동 분개 (지출, 입금 동시 생성) 실행
+   // 자동 분개 (지출, 입금 동시 생성) 실행
     async function handleTransferSubmit(e) {
         e.preventDefault();
         const date = document.getElementById('transfer-date').value;
@@ -3028,22 +3028,28 @@
         const toFund = document.getElementById('transfer-to-fund').value;
         const toBiz = document.getElementById('transfer-to-biz').value;
 
+        // 입금 계정과목 똑똑하게 매칭하기
+        let incAccountItem = '잡수입/기타';
+        if (toBiz.includes('예치')) incAccountItem = toBiz;
+        else if (toBiz === '자부담대체입금') incAccountItem = '자부담수입';
+        else if (toBiz === '기타' && toFund === '보조금') incAccountItem = '보조금수입';
+
         // 1. 지출 결의서 데이터 생성 (출금)
         const expId = await generateResolutionNumber(date);
         const expData = {
             id: expId,
             fundType: fromFund,
-            bizName: fromBiz, // 예: 인건비
+            bizName: fromBiz, 
             date: date,
             summary: '[대체출금] ' + summary,
             evidence: evidence,
             totalAmount: amount,
             items: [{
                 itemDate: date,
-                accountItem: '기타', // 포괄적 적용
+                accountItem: '기타', 
                 botamCategory: '기타', 
                 payMethod: '계좌이체',
-                vendor: '예치금통장이체',
+                vendor: '자체통장이체',
                 detailSummary: summary,
                 amount: amount
             }]
@@ -3054,15 +3060,15 @@
         const incData = {
             id: incId,
             fundType: toFund,
-            category: toBiz, // 예: 예치통장
+            category: toBiz, 
             date: date,
             summary: '[대체입금] ' + summary,
             evidence: evidence,
             totalAmount: amount,
             items: [{
-                accountItem: toBiz.includes('예치') ? toBiz : '기타',
+                accountItem: incAccountItem, // 위에서 매칭한 계정과목 적용
                 botamCategory: '기타',
-                vendor: '예치금통장이체',
+                vendor: '자체통장이체',
                 detailSummary: summary,
                 amount: amount
             }]
