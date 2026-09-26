@@ -1761,64 +1761,7 @@
 
         if (countDisplay) countDisplay.innerText = `조회된 지출 내역 합계 (${list.length}건)`;
         if (amountDisplay) amountDisplay.innerText = `${totalFilteredAmount.toLocaleString()}원`;
-   
-        }
-        // =========================================================================
-        // [수정] 지출일자(date) 기준 내림차순 정렬 (날짜가 같으면 결의번호 최신순 정렬)
-        // =========================================================================
-        list.sort((a, b) => {
-            if (a.date !== b.date) {
-                return b.date.localeCompare(a.date); // 최신 날짜가 상단에 오도록 순서 변경
-            }
-            return b.id.localeCompare(a.id, undefined, { numeric: true }); // 최신 번호가 상단에 오도록 순서 변경
-        });
-        // =========================================================================
-        const tbody = document.querySelector('#recent-list-table tbody');
-        tbody.innerHTML = '';
-
-        let totalFilteredAmount = 0;
-
-       list.forEach(item => {
-            totalFilteredAmount += (item.totalAmount || 0);
-
-            // [수정] 세부 적요 및 지출처(거래처) 함께 표기
-            let displaySummary = '-';
-            let vendors = '-';
-            if (item.items && item.items.length > 0) {
-                const firstSummary = item.items[0].detailSummary || '-';
-                if (item.items.length > 1) {
-                    displaySummary = `${firstSummary} 외 ${item.items.length - 1}개 항목`;
-                } else {
-                    displaySummary = firstSummary;
-                }
-                // 기존의 지출처(거래처) 중복 제거하여 추출하는 코드 복구
-                vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
-            }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-weight:bold; color:var(--primary-color); white-space:nowrap;">${item.id}</td>
-                <td style="white-space:nowrap;">${item.date}</td>
-                <td style="white-space:nowrap;"><span style="background:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:12px;">${item.fundType}</span></td>
-                <td>${item.bizName}</td>
-                <td>${displaySummary} <span style="font-size:11px; color:#4a5568;">(${vendors || '-'})</span></td> <!-- 내용과 거래처 동시 표기 -->
-                <td class="text-right" style="font-weight:bold; white-space:nowrap;">${item.totalAmount.toLocaleString()}원</td>
-                <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
-                <td class="text-center" style="white-space:nowrap;">
-                    <button class="btn-sm btn-edit" onclick="editExpenditure('${item.id}')">수정</button>
-                    <button class="btn-sm btn-delete" onclick="deleteExpenditure('${item.id}')">삭제</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        const countDisplay = document.getElementById('exp-total-count-display');
-        const amountDisplay = document.getElementById('exp-total-amount-display');
-
-        if (countDisplay) countDisplay.innerText = `조회된 지출 내역 합계 (${list.length}건)`;
-        if (amountDisplay) amountDisplay.innerText = `${totalFilteredAmount.toLocaleString()}원`;
     }
-
     /* 3탭 예산 현황표 및 월별 집계 함수 */
     async function renderSummary() {
         const expList = yearExpenses(await getExpenditures());
