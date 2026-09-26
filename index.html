@@ -233,11 +233,15 @@
                     <select id="transfer-from-fund" required style="width:100%; margin-bottom:8px; padding:6px; font-size:13px;">
                         <option value="보조금">보조금 회계</option>
                         <option value="자부담">자부담 회계</option>
+                        <option value="예치금">예치금 회계</option> <!-- 신규 추가 -->
                     </select>
                     <select id="transfer-from-biz" required style="width:100%; padding:6px; font-size:13px;">
                         <option value="인건비">인건비 (4대보험/소득세 등)</option>
                         <option value="운영비">운영비 (보조금)</option>
                         <option value="운영비 (자부담)">운영비 (자부담)</option>
+                        <!-- 신규 추가 항목들 -->
+                        <option value="사회보험 및 소득세.지방소득세 예치통장">예치금 - 사회보험 및 지방소득세</option>
+                        <option value="퇴직적립금 예치통장">예치금 - 퇴직적립금</option>
                     </select>
                 </div>
                 <!-- 입금 영역 -->
@@ -246,11 +250,14 @@
                     <select id="transfer-to-fund" required style="width:100%; margin-bottom:8px; padding:6px; font-size:13px;">
                         <option value="예치금">예치금 회계</option>
                         <option value="자부담">자부담 회계</option>
+                        <option value="보조금">보조금 회계</option> <!-- 신규 추가 -->
                     </select>
                     <select id="transfer-to-biz" required style="width:100%; padding:6px; font-size:13px;">
-                        <option value="사회보험 및 소득세.지방소득세 예치통장">사회보험 및 소득세.지방소득세 예치통장</option>
-                        <option value="퇴직적립금 예치통장">퇴직적립금 예치통장</option>
-                        <option value="자부담대체입금">자부담대체입금</option>
+                        <!-- 신규 추가 항목들 -->
+                        <option value="사회보험 및 소득세.지방소득세 예치통장">예치금 - 사회보험 및 지방소득세</option>
+                        <option value="퇴직적립금 예치통장">예치금 - 퇴직적립금</option>
+                        <option value="자부담대체입금">자부담 대체입금</option>
+                        <option value="기타">보조금 대체입금 (기타)</option>
                     </select>
                 </div>
             </div>
