@@ -1352,7 +1352,16 @@
         tbody.innerHTML = '';
 
         list.forEach(item => {
-            const vendors = item.items ? [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ') : '-';
+            // [수정] 세부 적요 첫 번째 내용 추출 및 요약 문구 생성
+            let displaySummary = '-';
+            if (item.items && item.items.length > 0) {
+                const firstSummary = item.items[0].detailSummary || '-'; // 첫 번째 입금 항목의 세부적요
+                if (item.items.length > 1) {
+                    displaySummary = `${firstSummary} 외 ${item.items.length - 1}개 항목`;
+                } else {
+                    displaySummary = firstSummary; // 1개일 때는 해당 내용만 출력
+                }
+            }
             
             let bg = '#e6f4ea', color = '#137333';
             if (item.fundType === '자부담') { bg = '#fffaf0'; color = '#dd6b20'; }
@@ -1364,7 +1373,7 @@
                 <td>${item.date}</td>
                 <td><span style="background:${bg}; color:${color}; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
                 <td>${item.category}</td>
-                <td>${item.items ? item.items.length : 0}개 항목 (${vendors || '-'})</td>
+                <td>${displaySummary}</td> <!-- 변경된 요약 문구 적용 -->
                 <td class="text-right" style="font-weight:bold; color:#276749;">${item.totalAmount.toLocaleString()}원</td>
                 <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
                 <td class="text-center">
