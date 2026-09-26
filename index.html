@@ -2227,7 +2227,7 @@
         renderCombinedTable();
     }
 
-    async function renderCombinedTable() {
+async function renderCombinedTable() {
         let list = await getCombinedList();
 
         const startDate = document.getElementById('comb-filter-start').value;
@@ -2257,42 +2257,46 @@
         let totalInc = 0;
         let totalExp = 0;
 
-    list.forEach(item => {
-            // [수정] 세부 적요 및 입금처 함께 표기
-            let displaySummary = '-';
-            let vendors = '-';
-            if (item.items && item.items.length > 0) {
-                const firstSummary = item.items[0].detailSummary || '-';
-                if (item.items.length > 1) {
-                    displaySummary = `${firstSummary} 외 ${item.items.length - 1}개 항목`;
-                } else {
-                    displaySummary = firstSummary;
-                }
-                // 기존의 입금처 중복 제거하여 추출하는 코드 복구
-                vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
-            }
+        list.forEach(item => {
+            // [안전장치 추가] 값이 비어있어도 오류가 나지 않도록 0으로 처리
+            const incAmt = item.incomeAmount || 0;
+            const expAmt = item.expenditureAmount || 0;
+            const balAmt = item.runningBalance || 0;
+
+            totalInc += incAmt;
+            totalExp += expAmt;
             
-            let bg = '#e6f4ea', color = '#137333';
-            if (item.fundType === '자부담') { bg = '#fffaf0'; color = '#dd6b20'; }
-            else if (item.fundType === '예치금') { bg = '#faf5ff'; color = '#805ad5'; }
+            // 수입(초록)과 지출(빨강)을 시각적으로 명확히 구분
+            let trBg = '';
+            let typeColor = '';
+            if (item.type === '입금') {
+                trBg = '#f0fff4'; 
+                typeColor = 'var(--income-color)';
+            } else {
+                trBg = '#fff5f5'; 
+                typeColor = 'var(--danger-color)';
+            }
 
             const tr = document.createElement('tr');
+            tr.style.backgroundColor = trBg;
             tr.innerHTML = `
-                <td style="font-weight:bold; color:var(--income-color);">${item.id}</td>
-                <td>${item.date}</td>
-                <td><span style="background:${bg}; color:${color}; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
+                <td class="text-center">${item.month}</td>
+                <td class="text-center">${item.day}</td>
+                <td class="text-center" style="font-weight:bold; color:${typeColor};">${item.type}</td>
+                <td>${item.vendor || '-'}</td>
                 <td>${item.category}</td>
-                <td>${displaySummary} <span style="font-size:11px; color:#4a5568;">(${vendors || '-'})</span></td> <!-- 내용과 입금처 동시 표기 -->
-                <td class="text-right" style="font-weight:bold; color:#276749;">${item.totalAmount.toLocaleString()}원</td>
-                <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
-                <td class="text-center">
-                    <button class="btn-sm btn-edit" onclick="editIncome('${item.id}')">수정</button>
-                    <button class="btn-sm btn-delete" onclick="deleteIncome('${item.id}')">삭제</button>
-                </td>
+                <td>${item.botamCategory || '-'}</td>
+                <td>${item.summary}</td>
+                <td class="text-right" style="color:var(--income-color); font-weight:bold;">${incAmt.toLocaleString()}</td>
+                <td class="text-right" style="color:var(--danger-color); font-weight:bold;">${expAmt.toLocaleString()}</td>
+                <td class="text-right" style="color:var(--primary-color); font-weight:bold;">${balAmt.toLocaleString()}</td>
+                <td class="text-center">${item.payMethod || '-'}</td>
+                <td style="font-size:11px;">${item.evidence}</td>
             `;
             tbody.appendChild(tr);
         });
 
+        // 하단 총계 표시
         document.getElementById('comb-total-income').innerText = `${totalInc.toLocaleString()} 원`;
         document.getElementById('comb-total-exp').innerText = `${totalExp.toLocaleString()} 원`;
         document.getElementById('comb-final-balance').innerText = `${(totalInc - totalExp).toLocaleString()} 원`;
