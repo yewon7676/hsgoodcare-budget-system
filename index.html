@@ -1701,10 +1701,9 @@
         renderRecentTable();
     }
 
-    async function renderRecentTable() {
+// 2탭 지출 내역 목록 렌더링 (페이지네이션 및 색상 구분 적용)
+    async function renderRecentTable(page = 1) {
         let list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
-        
-        // [추가] 연계 여부 확인을 위해 입금 내역 전체를 불러옵니다.
         const allIncomes = await getIncomes(); 
 
         const startDate = document.getElementById('exp-filter-start').value;
@@ -1715,11 +1714,7 @@
 
         if (startDate) list = list.filter(item => item.date >= startDate);
         if (endDate) list = list.filter(item => item.date <= endDate);
-        
-        if (fundTypeFilter) {
-            list = list.filter(item => item.fundType === fundTypeFilter);
-        }
-
+        if (fundTypeFilter) list = list.filter(item => item.fundType === fundTypeFilter);
         if (bizNameFilter) {
             list = list.filter(item => {
                 let match = item.bizName === bizNameFilter;
@@ -1729,7 +1724,6 @@
                 return match;
             });
         }
-
         if (keyword) {
             list = list.filter(item => {
                 const summaryMatch = item.summary && item.summary.toLowerCase().includes(keyword);
@@ -1749,16 +1743,25 @@
             }
             return b.id.localeCompare(a.id, undefined, { numeric: true });
         });
+
+        // 꼬리말 표시용 전체 합계 계산 (페이지를 나누기 전 전체 데이터 기준)
+        let totalFilteredAmount = 0;
+        list.forEach(item => { totalFilteredAmount += (item.totalAmount || 0); });
+
+        // --- 페이지네이션(화면 분할) 처리 로직 ---
+        const itemsPerPage = 20; // 한 페이지에 노출할 개수
+        const totalPages = Math.ceil(list.length / itemsPerPage) || 1;
+        if (page > totalPages) page = totalPages;
+
+        const startIndex = (page - 1) * itemsPerPage;
+        const paginatedList = list.slice(startIndex, startIndex + itemsPerPage); // 20개만 잘라내기
         
         const tbody = document.querySelector('#recent-list-table tbody');
         tbody.innerHTML = '';
 
-        let totalFilteredAmount = 0;
-
-        list.forEach(item => {
-            totalFilteredAmount += (item.totalAmount || 0);
-
-            // 세부 적요 및 지출처(거래처) 함께 표기
+        // 잘라낸 20개의 데이터만 화면에 그리기
+        paginatedList.forEach(item => {
+            // 세부 적요 및 지출처(거래처) 표기
             let displaySummary = '-';
             let vendors = '-';
             if (item.items && item.items.length > 0) {
@@ -1771,28 +1774,29 @@
                 vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
             }
 
-            // [수정] 띄어쓰기 등 미세한 문자 차이로 인한 오류를 막기 위해, 날짜+금액+키워드로 강력하게 교차 검증
             const isLinked = allIncomes.some(inc => 
                 inc.date === item.date && 
                 inc.totalAmount === item.totalAmount && 
                 inc.summary && inc.summary.includes('[자동연계]')
             );
 
-            // 연계 상태에 따라 버튼 디자인 다르게 적용
             let linkBtnHtml = '';
             if (isLinked) {
-                // 이미 연계되었으면 회색으로 비활성화
                 linkBtnHtml = `<button class="btn-sm" style="background:#cbd5e0; color:#718096; border:none; border-radius:3px; cursor:not-allowed;" disabled>연계 완료</button>`;
             } else {
-                // 아직 연계 전이면 보라색 활성화
                 linkBtnHtml = `<button class="btn-sm" style="background:#805ad5; color:white; border:none; border-radius:3px;" onclick="linkToDeposit('${item.id}')">예치 연계</button>`;
             }
+
+            // [수정] 1탭과 동일한 회계 구분 색상 로직 적용
+            let bg = '#e6f4ea', color = '#137333'; // 기본 보조금 (초록)
+            if (item.fundType === '자부담') { bg = '#fffaf0'; color = '#dd6b20'; } // 자부담 (주황)
+            else if (item.fundType === '예치금') { bg = '#faf5ff'; color = '#805ad5'; } // 예치금 (보라)
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color:var(--primary-color); white-space:nowrap;">${item.id}</td>
                 <td style="white-space:nowrap;">${item.date}</td>
-                <td style="white-space:nowrap;"><span style="background:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:12px;">${item.fundType}</span></td>
+                <td style="white-space:nowrap;"><span style="background:${bg}; color:${color}; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
                 <td>${item.bizName}</td>
                 <td>${displaySummary} <span style="font-size:11px; color:#4a5568;">(${vendors || '-'})</span></td>
                 <td class="text-right" style="font-weight:bold; white-space:nowrap;">${item.totalAmount.toLocaleString()}원</td>
@@ -1800,7 +1804,7 @@
                 <td class="text-center" style="white-space:nowrap;">
                     <button class="btn-sm btn-edit" onclick="editExpenditure('${item.id}')">수정</button>
                     <button class="btn-sm btn-delete" onclick="deleteExpenditure('${item.id}')">삭제</button>
-                    ${linkBtnHtml} <!-- [적용] 상태에 따른 연계 버튼 출력 -->
+                    ${linkBtnHtml}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -1808,9 +1812,39 @@
 
         const countDisplay = document.getElementById('exp-total-count-display');
         const amountDisplay = document.getElementById('exp-total-amount-display');
-
         if (countDisplay) countDisplay.innerText = `조회된 지출 내역 합계 (${list.length}건)`;
         if (amountDisplay) amountDisplay.innerText = `${totalFilteredAmount.toLocaleString()}원`;
+
+        // 하단에 페이지네이션 번호 버튼 생성
+        renderExpPagination(totalPages, page);
+    }
+
+    // [신규 기능] 지출 목록 하단 페이지 번호(1, 2, 3...) 렌더링 함수
+    function renderExpPagination(totalPages, currentPage) {
+        let container = document.getElementById('exp-pagination-container');
+        if (!container) {
+            // 표 아래에 페이지 버튼을 담을 공간이 없으면 새로 만듭니다
+            const table = document.getElementById('recent-list-table');
+            container = document.createElement('div');
+            container.id = 'exp-pagination-container';
+            container.style.cssText = 'text-align: center; margin-top: 15px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;';
+            table.parentNode.insertBefore(container, table.nextSibling);
+        }
+
+        container.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            // 현재 보고 있는 페이지는 파란색으로 강조
+            if (i === currentPage) {
+                btn.style.cssText = 'background: #2b6cb0; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer;';
+            } else {
+                btn.style.cssText = 'background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 6px 12px; border-radius: 4px; cursor: pointer;';
+            }
+            // 번호를 누르면 해당 페이지 목록을 다시 불러옵니다
+            btn.onclick = () => renderRecentTable(i);
+            container.appendChild(btn);
+        }
     }
     /* 3탭 예산 현황표 및 월별 집계 함수 */
     async function renderSummary() {
