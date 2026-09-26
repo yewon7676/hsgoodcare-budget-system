@@ -667,8 +667,17 @@
     <!-- 4 탭: 입금 확인서 출력 -->
     <div id="income-print-tab" class="tab-content">
         <div class="print-control-area">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <strong>🖨️ 출력할 입금확인서 선택 (다중 선택 및 일괄 인쇄 가능):</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <strong>🖨️ 출력할 입금확인서 선택:</strong>
+                    <div style="background:#edf2f7; padding:4px 8px; border-radius:4px; font-size:12px; display:flex; gap:5px;">
+                        <span style="color:#4a5568; font-weight:bold;">정렬:</span>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortIncomePrintList('date_desc')">날짜 ▼</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortIncomePrintList('date_asc')">날짜 ▲</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortIncomePrintList('id_desc')">번호 ▼</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortIncomePrintList('id_asc')">번호 ▲</button>
+                    </div>
+                </div>
                 <div>
                     <button class="btn-sm btn-secondary" onclick="selectAllIncomes(true)">전체 선택</button>
                     <button class="btn-sm btn-secondary" onclick="selectAllIncomes(false)">선택 해제</button>
@@ -684,8 +693,17 @@
     <!-- 5 탭: 지출 결의서 출력 -->
     <div id="print-tab" class="tab-content">
         <div class="print-control-area">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <strong>🖨️ 출력할 지출결의서 선택 (다중 선택 및 일괄 인쇄 가능):</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <strong>🖨️ 출력할 지출결의서 선택:</strong>
+                    <div style="background:#edf2f7; padding:4px 8px; border-radius:4px; font-size:12px; display:flex; gap:5px;">
+                        <span style="color:#4a5568; font-weight:bold;">정렬:</span>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortExpPrintList('date_desc')">날짜 ▼</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortExpPrintList('date_asc')">날짜 ▲</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortExpPrintList('id_desc')">번호 ▼</button>
+                        <button class="btn-sm" style="border:1px solid #cbd5e0; background:#fff; cursor:pointer; color:#2d3748;" onclick="sortExpPrintList('id_asc')">번호 ▲</button>
+                    </div>
+                </div>
                 <div>
                     <button class="btn-sm btn-secondary" onclick="selectAllExp(true)">전체 선택</button>
                     <button class="btn-sm btn-secondary" onclick="selectAllExp(false)">선택 해제</button>
@@ -697,7 +715,6 @@
 
         <div id="print-area"></div>
     </div>
-
     <!-- 6 탭: 통계 및 보고서 차트 -->
     <div id="dashboard-tab" class="tab-content">
         <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--primary-color);">■ <span class="year-label">2026</span>년도 수입·지출 및 예산집행 시각화 보고서</h3>
@@ -2699,8 +2716,16 @@ async function renderCombinedTable() {
         XLSX.writeFile(workbook, `수입세부지출_통합장부_검색결과_${todayStr}.xlsx`);
     }
 
+    // === 4탭(입금확인서) 정렬 및 목록 업데이트 기능 ===
+    let currentIncomePrintSort = 'date_desc'; // 기본값: 날짜 내림차순(최신순)
+    
+    function sortIncomePrintList(sortType) {
+        currentIncomePrintSort = sortType;
+        updateIncomeSelector();
+    }
+
     async function updateIncomeSelector() {
-        const list = (await getIncomes()).filter(x=>belongsToYear(x.date));
+        let list = (await getIncomes()).filter(x=>belongsToYear(x.date));
         const container = document.getElementById('income-checkbox-list');
         container.innerHTML = '';
 
@@ -2709,6 +2734,21 @@ async function renderCombinedTable() {
             renderSelectedIncomes();
             return;
         }
+
+        // 선택된 조건에 맞게 데이터 정렬
+        list.sort((a, b) => {
+            if (currentIncomePrintSort === 'date_desc') {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                return b.id.localeCompare(a.id, undefined, { numeric: true });
+            } else if (currentIncomePrintSort === 'date_asc') {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.id.localeCompare(b.id, undefined, { numeric: true });
+            } else if (currentIncomePrintSort === 'id_desc') {
+                return b.id.localeCompare(a.id, undefined, { numeric: true });
+            } else if (currentIncomePrintSort === 'id_asc') {
+                return a.id.localeCompare(b.id, undefined, { numeric: true });
+            }
+        });
 
         list.forEach((item, idx) => {
             container.innerHTML += `
@@ -2924,8 +2964,16 @@ async function renderCombinedTable() {
         });
     } 
 
+    // === 5탭(지출결의서) 정렬 및 목록 업데이트 기능 ===
+    let currentExpPrintSort = 'date_desc'; // 기본값: 날짜 내림차순(최신순)
+    
+    function sortExpPrintList(sortType) {
+        currentExpPrintSort = sortType;
+        updateSelector();
+    }
+
     async function updateSelector() {
-        const list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
+        let list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
         const container = document.getElementById('exp-checkbox-list');
         container.innerHTML = '';
 
@@ -2935,6 +2983,21 @@ async function renderCombinedTable() {
             return;
         }
 
+        // 선택된 조건에 맞게 데이터 정렬
+        list.sort((a, b) => {
+            if (currentExpPrintSort === 'date_desc') {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                return b.id.localeCompare(a.id, undefined, { numeric: true });
+            } else if (currentExpPrintSort === 'date_asc') {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.id.localeCompare(b.id, undefined, { numeric: true });
+            } else if (currentExpPrintSort === 'id_desc') {
+                return b.id.localeCompare(a.id, undefined, { numeric: true });
+            } else if (currentExpPrintSort === 'id_asc') {
+                return a.id.localeCompare(b.id, undefined, { numeric: true });
+            }
+        });
+
         list.forEach((item, idx) => {
             container.innerHTML += `
                 <div class="print-list-item">
@@ -2943,11 +3006,6 @@ async function renderCombinedTable() {
                 </div>
             `;
         });
-        renderSelectedExpenditures();
-    }
-
-    function selectAllExp(status) {
-        document.querySelectorAll('.exp-print-chk').forEach(chk => chk.checked = status);
         renderSelectedExpenditures();
     }
 
