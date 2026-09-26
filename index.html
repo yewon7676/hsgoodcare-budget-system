@@ -1740,10 +1740,11 @@
                 vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
             }
 
-            // [신규 추가] 이미 연계된 내역인지 확인하는 안전장치
+            // [수정] 띄어쓰기 등 미세한 문자 차이로 인한 오류를 막기 위해, 날짜+금액+키워드로 강력하게 교차 검증
             const isLinked = allIncomes.some(inc => 
                 inc.date === item.date && 
-                inc.summary === '[자동연계] ' + item.summary
+                inc.totalAmount === item.totalAmount && 
+                inc.summary && inc.summary.includes('[자동연계]')
             );
 
             // 연계 상태에 따라 버튼 디자인 다르게 적용
