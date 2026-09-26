@@ -1801,6 +1801,11 @@
                     }
                     
                     if (bizKey === '운영비(자부담)') bizKey = '운영비 (자부담)';
+                    
+                    // [추가] 주민세/지방소득세 이름 불일치 방어코드
+                    if (bizKey.includes('소득세') && bizKey.includes('예치통장')) {
+                        bizKey = Object.keys(currentBudgetData).find(k => k.includes('소득세') && k.includes('예치통장')) || bizKey;
+                    }
 
                     if (!currentBudgetData.hasOwnProperty(bizKey)) {
                         bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
@@ -1812,6 +1817,12 @@
             } else {
                 let bizKey = item.bizName;
                 if (bizKey === '운영비(자부담)') bizKey = '운영비 (자부담)';
+                
+                // [추가] 주민세/지방소득세 이름 불일치 방어코드
+                if (bizKey.includes('소득세') && bizKey.includes('예치통장')) {
+                    bizKey = Object.keys(currentBudgetData).find(k => k.includes('소득세') && k.includes('예치통장')) || bizKey;
+                }
+
                 if (!currentBudgetData.hasOwnProperty(bizKey)) {
                     bizKey = item.fundType === '자부담' ? '기타(자부담_이자수입 및 이월잔액 등)' : '기타(보조금_이자수입 및 대체입금 등)';
                 }
@@ -1819,10 +1830,14 @@
             }
         });
 
+        // [수정] DB의 정확한 항목명(주민세 or 지방소득세)을 유연하게 찾도록 설정
+        const depositTaxKey = Object.keys(currentBudgetData).find(k => k.includes('소득세') && k.includes('예치통장')) || '사회보험 및 소득세.지방소득세 예치통장';
+        const depositRetireKey = Object.keys(currentBudgetData).find(k => k.includes('퇴직적립금')) || '퇴직적립금 예치통장';
+
         const autoIncomeKeys = [
             '운영비 (자부담)',
-            '사회보험 및 소득세.지방소득세 예치통장',
-            '퇴직적립금 예치통장',
+            depositTaxKey,
+            depositRetireKey,
             '기타(자부담_이자수입 및 이월잔액 등)',
             '기타(보조금_이자수입 및 대체입금 등)'
         ];
@@ -1834,10 +1849,10 @@
 
             if (inc.category === '자부담 (예산연동)' || inc.category === '자부담대체입금') {
                 mappedKey = '운영비 (자부담)';
-            } else if (inc.category === '사회보험 및 소득세.지방소득세 예치통장') {
-                mappedKey = '사회보험 및 소득세.지방소득세 예치통장';
-            } else if (inc.category === '퇴직적립금 예치통장') {
-                mappedKey = '퇴직적립금 예치통장';
+            } else if (inc.category.includes('소득세') && inc.category.includes('예치통장')) {
+                mappedKey = depositTaxKey; // 1탭이 주민세든 지방소득세든 DB항목명으로 자동 연결
+            } else if (inc.category.includes('퇴직적립금')) {
+                mappedKey = depositRetireKey;
             } else if (inc.category === '이자' || inc.category === '기타') {
                 if (inc.fundType === '자부담') {
                     mappedKey = '기타(자부담_이자수입 및 이월잔액 등)';
@@ -1931,41 +1946,6 @@
         if (totalIncomeInputSum !== actualTotalIncomeFromTab1) {
             errorAlert.style.display = 'block';
             errorAlert.innerHTML = `⚠️ <strong>입금액 불일치 경고:</strong> 항목별 입력한 입금액 합계(<strong>${totalIncomeInputSum.toLocaleString()}원</strong>)가 1탭의 실제 입금 총액(<strong>${actualTotalIncomeFromTab1.toLocaleString()}원</strong>)과 다릅니다. [차액: ${(totalIncomeInputSum - actualTotalIncomeFromTab1).toLocaleString()}원] 오류를 확인하세요.`;
-        } else {
-            errorAlert.style.display = 'none';
-        }
-    }
-
-    async function recalculateSummaryTotals() {
-        const incInputs = document.querySelectorAll('.income-input');
-        let currentIncomeSum = 0;
-
-        incInputs.forEach(input => {
-            const row = input.closest('tr');
-            if (row && !row.style.backgroundColor.includes('edf2f7')) {
-                const bizIncome = parseInt(input.value) || 0;
-                const spentText = row.children[3].innerText.replace(/[^0-9-]/g, '');
-                const spent = parseInt(spentText) || 0;
-                const actualBalanceCell = row.querySelector('.actual-balance-cell');
-                
-                if (actualBalanceCell) {
-                    const actualBalance = bizIncome - spent;
-                    actualBalanceCell.innerText = `${actualBalance.toLocaleString()}원`;
-                }
-                currentIncomeSum += bizIncome;
-            }
-        });
-
-        document.getElementById('sum-total-income').innerText = `${currentIncomeSum.toLocaleString()}원`;
-
-        const incList = (await getIncomes()).filter(x=>belongsToYear(x.date));
-        let actualTotalIncomeFromTab1 = 0;
-        incList.forEach(item => { actualTotalIncomeFromTab1 += item.totalAmount || 0; });
-
-        const errorAlert = document.getElementById('error-alert-box');
-        if (currentIncomeSum !== actualTotalIncomeFromTab1) {
-            errorAlert.style.display = 'block';
-            errorAlert.innerHTML = `⚠️ <strong>입금액 불일치 경고:</strong> 항목별 입력한 입금액 합계(<strong>${currentIncomeSum.toLocaleString()}원</strong>)가 1탭의 실제 입금 총액(<strong>${actualTotalIncomeFromTab1.toLocaleString()}원</strong>)과 다릅니다. [차액: ${(currentIncomeSum - actualTotalIncomeFromTab1).toLocaleString()}원] 오류를 확인하세요.`;
         } else {
             errorAlert.style.display = 'none';
         }
