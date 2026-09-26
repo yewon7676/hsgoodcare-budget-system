@@ -1655,15 +1655,18 @@
        list.forEach(item => {
             totalFilteredAmount += (item.totalAmount || 0);
 
-            // [수정] 세부 적요 첫 번째 내용 추출 및 요약 문구 생성
+            // [수정] 세부 적요 및 지출처(거래처) 함께 표기
             let displaySummary = '-';
+            let vendors = '-';
             if (item.items && item.items.length > 0) {
-                const firstSummary = item.items[0].detailSummary || '-'; // 첫 번째 항목의 세부적요
+                const firstSummary = item.items[0].detailSummary || '-';
                 if (item.items.length > 1) {
                     displaySummary = `${firstSummary} 외 ${item.items.length - 1}개 항목`;
                 } else {
-                    displaySummary = firstSummary; // 1개일 때는 해당 내용만 출력
+                    displaySummary = firstSummary;
                 }
+                // 기존의 지출처(거래처) 중복 제거하여 추출하는 코드 복구
+                vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
             }
 
             const tr = document.createElement('tr');
@@ -1672,7 +1675,7 @@
                 <td style="white-space:nowrap;">${item.date}</td>
                 <td style="white-space:nowrap;"><span style="background:#e2e8f0; padding:2px 6px; border-radius:3px; font-size:12px;">${item.fundType}</span></td>
                 <td>${item.bizName}</td>
-                <td>${displaySummary}</td> <!-- 변경된 요약 문구 적용 -->
+                <td>${displaySummary} <span style="font-size:11px; color:#4a5568;">(${vendors || '-'})</span></td> <!-- 내용과 거래처 동시 표기 -->
                 <td class="text-right" style="font-weight:bold; white-space:nowrap;">${item.totalAmount.toLocaleString()}원</td>
                 <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
                 <td class="text-center" style="white-space:nowrap;">
@@ -2121,27 +2124,38 @@
         let totalInc = 0;
         let totalExp = 0;
 
-        list.forEach(item => {
-            totalInc += item.incomeAmount;
-            totalExp += item.expenditureAmount;
-
-            const isIncome = item.type === '입금';
-            const badgeClass = isIncome ? 'badge-inc' : 'badge-exp';
+    list.forEach(item => {
+            // [수정] 세부 적요 및 입금처 함께 표기
+            let displaySummary = '-';
+            let vendors = '-';
+            if (item.items && item.items.length > 0) {
+                const firstSummary = item.items[0].detailSummary || '-';
+                if (item.items.length > 1) {
+                    displaySummary = `${firstSummary} 외 ${item.items.length - 1}개 항목`;
+                } else {
+                    displaySummary = firstSummary;
+                }
+                // 기존의 입금처 중복 제거하여 추출하는 코드 복구
+                vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
+            }
+            
+            let bg = '#e6f4ea', color = '#137333';
+            if (item.fundType === '자부담') { bg = '#fffaf0'; color = '#dd6b20'; }
+            else if (item.fundType === '예치금') { bg = '#faf5ff'; color = '#805ad5'; }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="text-center">${item.month}</td>
-                <td class="text-center">${item.day}</td>
-                <td class="text-center"><span class="${badgeClass}">${item.type}</span></td>
-                <td style="font-weight:bold;">${item.vendor}</td>
+                <td style="font-weight:bold; color:var(--income-color);">${item.id}</td>
+                <td>${item.date}</td>
+                <td><span style="background:${bg}; color:${color}; padding:2px 6px; border-radius:3px; font-size:12px; font-weight:bold;">${item.fundType}</span></td>
                 <td>${item.category}</td>
-                <td style="color:#2b6cb0; font-weight:bold;">${item.botamCategory || '-'}</td>
-                <td>${item.summary}</td>
-                <td class="text-right" style="color:var(--income-color); font-weight:bold;">${item.incomeAmount > 0 ? item.incomeAmount.toLocaleString() : ''}</td>
-                <td class="text-right" style="color:var(--danger-color); font-weight:bold;">${item.expenditureAmount > 0 ? item.expenditureAmount.toLocaleString() : ''}</td>
-                <td class="text-right" style="font-weight:bold; color:var(--primary-color);">${item.runningBalance.toLocaleString()}</td>
-                <td class="text-center">${item.payMethod || '계좌이체'}</td>
-                <td style="font-size:11px; color:#718096;">📄 ${item.evidence}</td>
+                <td>${displaySummary} <span style="font-size:11px; color:#4a5568;">(${vendors || '-'})</span></td> <!-- 내용과 입금처 동시 표기 -->
+                <td class="text-right" style="font-weight:bold; color:#276749;">${item.totalAmount.toLocaleString()}원</td>
+                <td style="color:#4a5568; font-size:13px;">📄 ${item.evidence}</td>
+                <td class="text-center">
+                    <button class="btn-sm btn-edit" onclick="editIncome('${item.id}')">수정</button>
+                    <button class="btn-sm btn-delete" onclick="deleteIncome('${item.id}')">삭제</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
