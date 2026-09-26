@@ -1672,6 +1672,9 @@
 
     async function renderRecentTable() {
         let list = (await getExpenditures()).filter(x=>belongsToYear(x.date));
+        
+        // [추가] 연계 여부 확인을 위해 입금 내역 전체를 불러옵니다.
+        const allIncomes = await getIncomes(); 
 
         const startDate = document.getElementById('exp-filter-start').value;
         const endDate = document.getElementById('exp-filter-end').value;
@@ -1737,6 +1740,22 @@
                 vendors = [...new Set(item.items.map(i => i.vendor).filter(Boolean))].join(', ');
             }
 
+            // [신규 추가] 이미 연계된 내역인지 확인하는 안전장치
+            const isLinked = allIncomes.some(inc => 
+                inc.date === item.date && 
+                inc.summary === '[자동연계] ' + item.summary
+            );
+
+            // 연계 상태에 따라 버튼 디자인 다르게 적용
+            let linkBtnHtml = '';
+            if (isLinked) {
+                // 이미 연계되었으면 회색으로 비활성화
+                linkBtnHtml = `<button class="btn-sm" style="background:#cbd5e0; color:#718096; border:none; border-radius:3px; cursor:not-allowed;" disabled>연계 완료</button>`;
+            } else {
+                // 아직 연계 전이면 보라색 활성화
+                linkBtnHtml = `<button class="btn-sm" style="background:#805ad5; color:white; border:none; border-radius:3px;" onclick="linkToDeposit('${item.id}')">예치 연계</button>`;
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color:var(--primary-color); white-space:nowrap;">${item.id}</td>
@@ -1749,8 +1768,7 @@
                 <td class="text-center" style="white-space:nowrap;">
                     <button class="btn-sm btn-edit" onclick="editExpenditure('${item.id}')">수정</button>
                     <button class="btn-sm btn-delete" onclick="deleteExpenditure('${item.id}')">삭제</button>
-                    <!-- [신규 추가] 예치 연계 버튼 -->
-                    <button class="btn-sm" style="background:#805ad5; color:white; border:none; border-radius:3px;" onclick="linkToDeposit('${item.id}')">예치 연계</button>
+                    ${linkBtnHtml} <!-- [적용] 상태에 따른 연계 버튼 출력 -->
                 </td>
             `;
             tbody.appendChild(tr);
