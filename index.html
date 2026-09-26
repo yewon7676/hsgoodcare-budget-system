@@ -1339,13 +1339,13 @@
         }
 
         // =========================================================================
-        // [신규 추가] 입금일자(date) 기준 오름차순 정렬 (날짜가 같으면 입금번호 순 정렬)
+        // [수정] 입금일자(date) 기준 내림차순 정렬 (날짜가 같으면 입금번호 최신순 정렬)
         // =========================================================================
         list.sort((a, b) => {
             if (a.date !== b.date) {
-                return a.date.localeCompare(b.date); // 예: 2026-01-05 -> 2026-02-10 순
+                return b.date.localeCompare(a.date); // 최신 날짜가 상단에 오도록 순서 변경
             }
-            return a.id.localeCompare(b.id, undefined, { numeric: true });
+            return b.id.localeCompare(a.id, undefined, { numeric: true }); // 최신 번호가 상단에 오도록 순서 변경
         });
         // =========================================================================
         const tbody = document.querySelector('#recent-income-table tbody');
@@ -1629,13 +1629,13 @@
             });
         }
         // =========================================================================
-        // [신규 추가] 지출일자(date) 기준 오름차순 정렬 (날짜가 같으면 결의번호 순 정렬)
+        // [수정] 지출일자(date) 기준 내림차순 정렬 (날짜가 같으면 결의번호 최신순 정렬)
         // =========================================================================
         list.sort((a, b) => {
             if (a.date !== b.date) {
-                return a.date.localeCompare(b.date); // 예: 2026-01-23 -> 2026-02-06 순
+                return b.date.localeCompare(a.date); // 최신 날짜가 상단에 오도록 순서 변경
             }
-            return a.id.localeCompare(b.id, undefined, { numeric: true });
+            return b.id.localeCompare(a.id, undefined, { numeric: true }); // 최신 번호가 상단에 오도록 순서 변경
         });
         // =========================================================================
         const tbody = document.querySelector('#recent-list-table tbody');
