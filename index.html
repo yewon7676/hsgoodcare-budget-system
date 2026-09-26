@@ -3033,6 +3033,54 @@
             alert('저장 중 통신 오류가 발생했습니다. 목록을 확인해주세요.');
         }
     }
+    // === 기존 지출결의서 -> 예치금 입금 자동 연계 기능 ===
+    async function linkToDeposit(expId) {
+        const list = await getExpenditures();
+        const exp = list.find(item => item.id === expId);
+        
+        if (!exp) {
+            return alert('지출 내역을 찾을 수 없습니다.');
+        }
+        
+        // 어떤 예치통장으로 넣을지 선택
+        const type = prompt('선택한 지출결의서를 예치금 입금으로 자동 연계합니다.\n\n어떤 통장으로 입금하시겠습니까?\n[1] 사회보험 및 소득세.지방소득세 예치통장\n[2] 퇴직적립금 예치통장\n\n원하시는 번호(1 또는 2)를 입력하세요.', '1');
+        
+        if (type !== '1' && type !== '2') {
+            if (type !== null) alert('취소되었거나 잘못된 입력입니다.');
+            return; // 1, 2 이외의 입력이나 취소 시 중단
+        }
+        
+        const categoryName = (type === '1') ? '사회보험 및 소득세.지방소득세 예치통장' : '퇴직적립금 예치통장';
+        const incId = await generateIncomeNumber(exp.date); // 동일한 날짜로 입금번호 자동 생성
+        
+        // 입금 데이터 조립 (지출결의서 데이터 복사)
+        const incData = {
+            id: incId,
+            fundType: '예치금',
+            category: categoryName,
+            date: exp.date,
+            summary: '[자동연계] ' + exp.summary,
+            evidence: exp.evidence || '자동연계',
+            totalAmount: exp.totalAmount,
+            items: [{
+                accountItem: categoryName,
+                botamCategory: '기타',
+                vendor: '자체통장이체',
+                detailSummary: exp.items && exp.items.length > 0 ? exp.items[0].detailSummary : exp.summary,
+                amount: exp.totalAmount
+            }]
+        };
+
+        // DB 저장 및 화면 갱신
+        const success = await saveIncomeToDB(incData, false);
+        if (success) {
+            alert(`✅ 예치금 입금 내역이 성공적으로 생성되었습니다.\n[생성된 입금번호: ${incId}]\n\n1탭(입금 내역) 및 3탭(예산 현황)에 자동 반영되었습니다.`);
+            await renderRecentIncomeTable();
+            await renderSummary();
+        } else {
+            alert('연계 저장 중 오류가 발생했습니다.');
+        }
+    }
 </script>
 
 </body>
