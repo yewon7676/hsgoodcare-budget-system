@@ -2993,7 +2993,7 @@
                 accountItem: '기타', // 포괄적 적용
                 botamCategory: '기타', 
                 payMethod: '계좌이체',
-                vendor: '자체통장이체',
+                vendor: '예치금통장이체',
                 detailSummary: summary,
                 amount: amount
             }]
@@ -3012,7 +3012,7 @@
             items: [{
                 accountItem: toBiz.includes('예치') ? toBiz : '기타',
                 botamCategory: '기타',
-                vendor: '자체통장이체',
+                vendor: '예치금통장이체',
                 detailSummary: summary,
                 amount: amount
             }]
@@ -3065,7 +3065,7 @@
             items: [{
                 accountItem: categoryName,
                 botamCategory: '기타',
-                vendor: '자체통장이체',
+                vendor: '예치금통장이체',
                 detailSummary: exp.items && exp.items.length > 0 ? exp.items[0].detailSummary : exp.summary,
                 amount: exp.totalAmount
             }]
