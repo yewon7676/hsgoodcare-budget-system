@@ -207,6 +207,26 @@
             .combined-exp-paper .print-detail-table tr { break-inside:avoid; }
             .combined-exp-paper .print-detail-table { break-inside:auto; }
         }
+
+        /* 5-1 전용 문서 인쇄: 나머지 탭/기존 5번 출력물 배제 */
+        #combined-exp-print-area .combined-exp-paper { page-break-after:auto; break-after:auto; }
+        #combined-exp-print-area .print-detail-table { font-size:11px; }
+        #combined-exp-print-area .print-detail-table th,
+        #combined-exp-print-area .print-detail-table td { padding:4px 5px; font-size:11px; overflow-wrap:anywhere; }
+        @media print {
+            @page { size:A4 portrait; margin:12mm; }
+            body.printing-combined-exp .tab-content { display:none !important; }
+            body.printing-combined-exp #combined-exp-tab { display:block !important; }
+            body.printing-combined-exp #combined-exp-print-area { display:block !important; }
+            body.printing-combined-exp #combined-exp-print-area .print-paper { break-after:auto !important; page-break-after:auto !important; }
+            body.printing-combined-exp #combined-exp-print-area .print-title { font-size:25px; margin:4px 0; }
+            body.printing-combined-exp #combined-exp-print-area .print-header { gap:5px; margin-bottom:8px; }
+            body.printing-combined-exp #combined-exp-print-area .print-table th,
+            body.printing-combined-exp #combined-exp-print-area .print-table td { padding:4px 6px; font-size:11px; }
+            body.printing-combined-exp #combined-exp-print-area .print-footer-logo { margin-top:12px; padding-top:7px; }
+            body.printing-combined-exp #combined-exp-print-area .print-footer-text { font-size:15px; }
+        }
+
     </style>
 </head>
 <body>
@@ -363,6 +383,7 @@
         <button class="tab-btn" onclick="switchTab('summary-tab')">3. 예산 대비 집행 현황 및 예산 수정</button>
         <button class="tab-btn income-tab-btn" onclick="switchTab('income-print-tab')">4. 입금 확인서 출력</button>
         <button class="tab-btn" onclick="switchTab('print-tab')">5. 지출 결의서 출력</button>
+        <button class="tab-btn" onclick="switchTab('combined-exp-tab')">5-1. 통합지출결의서 출력</button>
         <button class="tab-btn" onclick="switchTab('dashboard-tab')">6. 통계 및 보고서 차트</button>
         <button class="tab-btn" onclick="switchTab('combined-summary-tab')" style="color:#d69e2e;">7. 수입·지출 통합 요약 목록</button>
         <button class="tab-btn report-tab-btn" onclick="switchTab('quarterly-report-tab')" style="color:#805ad5;">8. 분기별 정산 보고서</button>
@@ -742,6 +763,25 @@
 
         <div id="print-area"></div>
     </div>
+    <!-- 5-1 탭: 독립형 통합 지출결의서 출력 -->
+    <div id="combined-exp-tab" class="tab-content">
+        <div class="print-control-area">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+                <div><strong>🖨️ 5-1. 통합지출결의서 출력</strong>
+                    <div style="font-size:12px; color:#555; margin-top:4px;">여러 건을 선택하면 결의번호별 세부 지출 항목이 하나의 통합 결의서로 표시됩니다.</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <button class="btn-sm btn-secondary" onclick="selectAllCombinedExp(true)">전체 선택</button>
+                    <button class="btn-sm btn-secondary" onclick="selectAllCombinedExp(false)">선택 해제</button>
+                    <button class="btn" style="padding:7px 12px;font-size:13px" onclick="printCombinedExpOnly()">통합지출결의서 인쇄 / PDF 저장</button>
+                </div>
+            </div>
+            <div class="print-list-box" id="combined-exp-checkbox-list"></div>
+            <div id="combined-exp-warning" style="display:none;margin-top:8px;color:#9b2c2c;font-size:12px"></div>
+        </div>
+        <div id="combined-exp-print-area"></div>
+    </div>
+
     <!-- 6 탭: 통계 및 보고서 차트 -->
     <div id="dashboard-tab" class="tab-content">
         <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--primary-color);">■ <span class="year-label">2026</span>년도 수입·지출 및 예산집행 시각화 보고서</h3>
@@ -1634,6 +1674,7 @@
         if(tabId === 'summary-tab') await renderSummary();
         if(tabId === 'income-print-tab') await updateIncomeSelector();
         if(tabId === 'print-tab') await updateSelector();
+        if(tabId === 'combined-exp-tab') await updateCombinedExpSelector();
         if(tabId === 'dashboard-tab') await renderCharts();
         if(tabId === 'combined-summary-tab') await renderCombinedTable();
         if(tabId === 'quarterly-report-tab') await renderQuarterlyReport();
@@ -2972,13 +3013,13 @@ async function renderCombinedTable() {
 
                         <div style="margin-top: 15px;">
                             <strong style="font-size: 14px;">[세부 지출 내역 명세]</strong>
-                            <table class="print-detail-table">
+                            <table class="print-detail-table exp-detail-widths" style="table-layout:fixed;">
                                 <thead>
                                     <tr>
                                         <th style="width: 5%;">No</th>
-                                        <th style="width: 25%;">계정 과목</th>
+                                        <th style="width: 17.5%;">계정 과목</th>
                                         <th style="width: 25%;">지출처 (지급처)</th>
-                                        <th style="width: 28%;">세부 지출 적요</th>
+                                        <th style="width: 35.5%;">세부 지출 적요</th>
                                         <th style="width: 17%;" class="text-right">금액</th>
                                     </tr>
                                 </thead>
@@ -3028,7 +3069,6 @@ async function renderCombinedTable() {
         const detailRows = rows.map(({head, detail}, i) => `
             <tr>
                 <td class="text-center">${i + 1}</td>
-                <td class="text-center">${escape(head.id)}</td>
                 <td class="text-center">${escape(detail.date || head.date)}</td>
                 <td>${escape(detail.accountItem)}</td>
                 <td>${escape(detail.vendor || '-')}</td>
@@ -3038,7 +3078,7 @@ async function renderCombinedTable() {
         printArea.innerHTML = `
             <div class="print-paper combined-exp-paper${compactClass}">
                 <div class="print-header">
-                    <div class="print-title">통 합 지 출 결 의 서</div>
+                    <div class="print-title">지 출 결 의 서</div>
                     <div class="approval-wrapper">
                         <table class="approval-table">
                             <tr><th rowspan="2" class="approval-title-col">결재</th><th class="approval-header-col">${escape(s.t1)}</th><th class="approval-header-col">${escape(s.t2)}</th><th class="approval-header-col">${escape(s.t3)}</th></tr>
@@ -3055,10 +3095,10 @@ async function renderCombinedTable() {
                 <strong style="font-size:12px;">[세부 지출 내역 명세]</strong>
                 <table class="print-detail-table">
                     <thead><tr>
-                        <th style="width:5%;">No</th><th style="width:14%;">결의번호</th><th style="width:13%;">지출일자</th>
-                        <th style="width:18%;">계정과목</th><th style="width:14%;">지급처</th><th style="width:23%;">적요</th><th style="width:13%;">금액(원)</th>
+                        <th style="width:5%;">No</th><th style="width:15%;">지출일자</th>
+                        <th style="width:13%;">계정과목</th><th style="width:17%;">지출처(지급처)</th><th style="width:37%;">세부 지출 적요</th><th style="width:13%;">금액</th>
                     </tr></thead>
-                    <tbody>${detailRows}<tr style="font-weight:bold; background:#f0f0f0;"><td colspan="6" class="text-right">합계</td><td class="text-right">${total.toLocaleString()}</td></tr></tbody>
+                    <tbody>${detailRows}<tr style="font-weight:bold; background:#f0f0f0;"><td colspan="5" class="text-right">합계</td><td class="text-right">${total.toLocaleString()}</td></tr></tbody>
                 </table>
                 <div class="combined-note"><strong>증빙:</strong> ${selected.map(x => `${escape(x.id)}: ${escape(x.evidence || '-')}`).join(' / ')}</div>
                 <div class="print-footer-logo"><div class="print-footer-text">화성시장기요양지원센터</div></div>
@@ -3069,6 +3109,75 @@ async function renderCombinedTable() {
             warning.textContent = `선택한 세부 지출 ${rows.length}건은 A4 한 장의 인쇄 영역을 초과할 수 있습니다. 인쇄 미리보기에서 페이지 수를 확인하고, 필요하면 인쇄 배율을 조정하거나 선택 건수를 줄여 주세요.`;
         }
     }
+
+
+    // 5-1 메뉴 전용: 기존 5번의 동명 함수 중복 선언과 완전히 분리
+    async function updateCombinedExpSelector() {
+        const container = document.getElementById('combined-exp-checkbox-list');
+        const list = (await getExpenditures()).filter(x => belongsToYear(x.date))
+            .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id), undefined, {numeric:true}));
+        container.replaceChildren();
+        if (!list.length) {
+            container.textContent = '선택 회계연도에 등록된 지출결의서가 없습니다.';
+            document.getElementById('combined-exp-print-area').replaceChildren();
+            return;
+        }
+        list.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'print-list-item';
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.className = 'combined-exp-chk';
+            chk.value = String(item.id);
+            chk.id = `combined-exp-chk-${index}`;
+            chk.checked = index === 0;
+            chk.addEventListener('change', renderCombinedExpOnly);
+            const label = document.createElement('label');
+            label.htmlFor = chk.id;
+            label.textContent = `[${item.id}] ${item.date} | ${item.bizName || '-'} | ${item.summary || '-'} (${Number(item.totalAmount || 0).toLocaleString()}원)`;
+            row.append(chk, label);
+            container.append(row);
+        });
+        await renderCombinedExpOnly();
+    }
+
+    function selectAllCombinedExp(checked) {
+        document.querySelectorAll('.combined-exp-chk').forEach(el => { el.checked = checked; });
+        renderCombinedExpOnly();
+    }
+
+    async function renderCombinedExpOnly() {
+        const area = document.getElementById('combined-exp-print-area');
+        const warning = document.getElementById('combined-exp-warning');
+        const ids = Array.from(document.querySelectorAll('.combined-exp-chk:checked'), el => el.value);
+        warning.style.display = 'none';
+        area.replaceChildren();
+        if (!ids.length) {
+            area.innerHTML = '<div style="padding:30px;text-align:center;border:1px dashed #aaa">출력할 지출결의서를 선택해 주세요.</div>';
+            return;
+        }
+        const all = (await getExpenditures()).filter(x => belongsToYear(x.date));
+        const selected = ids.map(id => all.find(x => String(x.id) === id)).filter(Boolean);
+        if (!selected.length) return;
+        renderCombinedExpenditurePage(selected, getApprovalSettings(), area);
+        // 기존 통합 출력 함수의 안내 영역과 별도로 5-1 자체 안내 표시
+        const detailCount = selected.reduce((sum, x) => sum + (x.items || []).length, 0);
+        if (detailCount > 15) {
+            warning.textContent = `세부 지출 ${detailCount}건: A4 한 페이지를 넘을 수 있습니다. 인쇄 미리보기에서 배율을 확인하세요.`;
+            warning.style.display = 'block';
+        }
+    }
+
+    async function printCombinedExpOnly() {
+        if (!document.querySelector('.combined-exp-chk:checked')) {
+            alert('통합 출력할 지출결의서를 먼저 선택해 주세요.');
+            return;
+        }
+        await renderCombinedExpOnly();
+        document.body.classList.add('printing-combined-exp');
+        window.print();
+    }
+    window.addEventListener('afterprint', () => document.body.classList.remove('printing-combined-exp'));
 
     // === 5탭(지출결의서) 정렬 및 목록 업데이트 기능 ===
     let currentExpPrintSort = 'date_desc'; // 기본값: 날짜 내림차순(최신순)
