@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.2</title>
+    <title>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.4</title>
     
     <!-- Supabase JS SDK, Chart.js, SheetJS(엑셀 출력용) 연동 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -301,7 +301,7 @@
     
 <div class="container" id="main-app" style="display:none;">
     <header>
-        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.2</h1>
+        <h1>화성시장기요양지원센터 맞춤형 수입·지출결의 및 예산관리 시스템 V27.4</h1>
         
         <div style="display:flex; align-items:center; gap:15px;">
             <div class="backup-control-bar">
@@ -899,7 +899,7 @@
     }
     async function getBudgetsFromDB() {
         const {data,error}=await supabaseClient.from('budgets_by_year').select('*').eq('fiscal_year',activeFiscalYear);
-        if(error)throw new Error('연도별 예산 조회 실패. V27.2 SQL 설정을 확인하세요. '+error.message);
+        if(error)throw new Error('연도별 예산 조회 실패. V27.4 SQL 설정을 확인하세요. '+error.message);
         const base=Object.fromEntries(Object.keys(defaultBudgetData).map(k=>[k,0]));
         const budgetData={...base},bizIncomeData={...base};
         (data||[]).forEach(row=>{budgetData[row.biz_name]=Number(row.budget_amount)||0;bizIncomeData[row.biz_name]=Number(row.income_amount)||0;});
@@ -1118,7 +1118,7 @@
     async function exportData() {
         try{
             const [incomes,expenditures,budgets]=await Promise.all([readAllRows('incomes'),readAllRows('expenditures'),readAllRows('budgets_by_year')]);
-            const blob=new Blob([JSON.stringify({version:'V27.2',format:'raw-all-years',exportDate:new Date().toISOString(),incomes,expenditures,budgets},null,2)],{type:'application/json'});
+            const blob=new Blob([JSON.stringify({version:'V27.4',format:'raw-all-years',exportDate:new Date().toISOString(),incomes,expenditures,budgets},null,2)],{type:'application/json'});
             const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='회계전체백업_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
         }catch(e){alert('백업을 생성하지 못했습니다. '+e.message);}
     }
@@ -2797,8 +2797,6 @@ async function renderCombinedTable() {
         const checkedBoxes = document.querySelectorAll('.inc-print-chk:checked');
         const printArea = document.getElementById('income-print-area');
         printArea.innerHTML = '';
-        const warning = document.getElementById('exp-combined-print-warning');
-        if (warning) warning.style.display = 'none';
 
         if (checkedBoxes.length === 0) {
             printArea.innerHTML = '<div class="print-paper" style="text-align:center; padding:50px;">선택된 입금확인서가 없습니다. 목록에서 항목을 선택해주세요.</div>';
@@ -2807,11 +2805,6 @@ async function renderCombinedTable() {
 
         const allIncomes = (await getIncomes()).filter(x=>belongsToYear(x.date));
         const s = getApprovalSettings(); // 결재란 설정 가져오기
-        if (document.getElementById('exp-print-mode')?.value === 'combined') {
-            const selected = Array.from(checkedBoxes).map(chk => allExp.find(el => String(el.id) === chk.value)).filter(Boolean);
-            renderCombinedExpenditurePage(selected, s, printArea);
-            return;
-        }
 
         checkedBoxes.forEach(chk => {
             const item = allIncomes.find(el => el.id === chk.value);
@@ -2903,6 +2896,8 @@ async function renderCombinedTable() {
         const checkedBoxes = document.querySelectorAll('.exp-print-chk:checked');
         const printArea = document.getElementById('print-area');
         printArea.innerHTML = '';
+        const warning = document.getElementById('exp-combined-print-warning');
+        if (warning) warning.style.display = 'none';
 
         if (checkedBoxes.length === 0) {
             printArea.innerHTML = '<div class="print-paper" style="text-align:center; padding:50px;">선택된 지출결의서가 없습니다. 목록에서 항목을 선택해주세요.</div>';
@@ -2911,6 +2906,13 @@ async function renderCombinedTable() {
 
         const allExp = (await getExpenditures()).filter(x=>belongsToYear(x.date));
         const s = getApprovalSettings(); // 결재란 설정 가져오기
+        if (document.getElementById('exp-print-mode')?.value === 'combined') {
+            const selected = Array.from(checkedBoxes)
+                .map(chk => allExp.find(el => String(el.id) === chk.value))
+                .filter(Boolean);
+            renderCombinedExpenditurePage(selected, s, printArea);
+            return;
+        }
 
         checkedBoxes.forEach(chk => {
             const item = allExp.find(el => el.id === chk.value);
